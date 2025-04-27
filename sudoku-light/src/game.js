@@ -234,7 +234,18 @@ function generateBoard(levelData) {
     if (board[i][j] !== null) {
       // Store the original value in a separate property for checking correctness
       const originalValue = board[i][j];
-      board[i][j] = { value: null, correctValue: originalValue };
+      
+      // Ensure originalValue is a primitive (string or number), not an object
+      const correctValue = typeof originalValue === 'object' ? 
+        (originalValue.toString ? originalValue.toString() : JSON.stringify(originalValue)) : 
+        originalValue;
+      
+      console.log(`Setting cell [${i}, ${j}] correctValue to ${correctValue} (${typeof correctValue})`);
+      
+      board[i][j] = { 
+        value: null, 
+        correctValue: correctValue
+      };
       hiddenCells++;
     }
   }
@@ -404,8 +415,14 @@ export function handleNumberPick(number) {
   const cell = gameState.board[row][col];
   console.log(`Checking cell [${row}, ${col}]. Correct value: ${cell.correctValue}`);
   
+  // Ensure number is of same type as correctValue for comparison (both should be strings or numbers)
+  const numToCheck = typeof number === 'string' ? parseInt(number, 10) : number;
+  const correctVal = typeof cell.correctValue === 'string' ? parseInt(cell.correctValue, 10) : cell.correctValue;
+  
+  console.log(`Comparing: number=${numToCheck} (${typeof numToCheck}), correctValue=${correctVal} (${typeof correctVal})`);
+  
   // Check if correct
-  if (number === cell.correctValue) {
+  if (numToCheck === correctVal) {
     console.log('Correct number picked!');
     // Update board state
     gameState.board[row][col].value = number;
@@ -453,6 +470,7 @@ export function handleNumberPick(number) {
     gameState.currentEmptyCell = null;
   } else {
     console.log('Incorrect number picked.');
+    console.log(`Number picked: ${number} (${typeof number}), expected: ${cell.correctValue} (${typeof cell.correctValue})`);
     // Wrong answer - keep number picker open and cell selected
     element.classList.add('shake');
     setTimeout(() => element.classList.remove('shake'), 500);
@@ -577,15 +595,34 @@ function handleHint() {
   updateHintDisplay(gameState.hintsLeft);
   
   const { row, col, element } = gameState.currentEmptyCell;
+  
+  // Make sure we have a valid board cell at this position
+  if (!gameState.board[row] || !gameState.board[row][col]) {
+    console.error(`Invalid board position: [${row}, ${col}]`);
+    return;
+  }
+  
   const correctValue = gameState.board[row][col].correctValue;
-  console.log(`Showing hint for cell [${row}, ${col}]. Correct value: ${correctValue}`);
+  
+  // Make sure correctValue is a primitive value (number or string), not an object
+  if (correctValue === null || correctValue === undefined) {
+    console.error(`No correct value found for cell [${row}, ${col}]`);
+    return;
+  }
+  
+  // Ensure correctValue is properly formatted to display
+  const displayValue = typeof correctValue === 'object' ? 
+    (correctValue.toString ? correctValue.toString() : JSON.stringify(correctValue)) : 
+    correctValue;
+  
+  console.log(`Showing hint for cell [${row}, ${col}]. Correct value: ${displayValue}`);
 
   // Store original state if needed (e.g., if it had temporary user input)
   const originalText = element.textContent;
   const originalClasses = element.className;
 
   // Apply flash styling
-  element.textContent = correctValue; // Show the correct number
+  element.textContent = displayValue; // Show the correct number
   element.classList.add('hint-flash'); // Add class for animation
 
   // Remove flash styling and text after 3 seconds
