@@ -198,15 +198,24 @@ function renderGameScreen() {
 
 // Handle cell tap
 export function handleCellTap(cellElement, rowIndex, colIndex) {
+  console.log('Cell tapped:', rowIndex, colIndex);
   const cell = gameState.board[rowIndex][colIndex];
   
   // Only handle empty cells
   if (cell && cell.value === null) {
+    console.log('Empty cell found. Preparing number picker.');
     gameState.currentEmptyCell = { element: cellElement, row: rowIndex, col: colIndex };
     
     // Get the level data to know which numbers to show
     const levelData = getLevelData(gameState.currentLevel, gameState.currentSubLevel);
+    console.log('Level data for picker:', levelData);
     const numberPicker = document.querySelector('.number-picker');
+    console.log('Number picker element:', numberPicker);
+    
+    if (!numberPicker) {
+      console.error('Number picker element not found!');
+      return;
+    }
     
     // Show the number picker with animation
     numberPicker.classList.add('open');
@@ -219,12 +228,22 @@ export function handleCellTap(cellElement, rowIndex, colIndex) {
     
     // Populate number picker with correct options
     populateNumberPicker(levelData.numbers);
+  } else {
+    console.log('Cell not empty or invalid.');
   }
 }
 
 // Populate number picker with options
 function populateNumberPicker(numbers) {
+  console.log('Populating number picker with:', numbers);
   const optionsContainer = document.querySelector('.number-picker-options');
+  console.log('Options container:', optionsContainer);
+  
+  if (!optionsContainer) {
+    console.error('Number picker options container not found!');
+    return;
+  }
+  
   optionsContainer.innerHTML = '';
   
   numbers.forEach(num => {
@@ -235,6 +254,7 @@ function populateNumberPicker(numbers) {
     option.addEventListener('click', () => handleNumberPick(num));
     optionsContainer.appendChild(option);
   });
+  console.log('Number picker populated.');
 }
 
 // Handle number pick
@@ -346,42 +366,24 @@ function handleHint() {
   gameState.hintsLeft--;
   updateHintDisplay(gameState.hintsLeft);
   
-  // Show hint animation
   const { row, col, element } = gameState.currentEmptyCell;
   const correctValue = gameState.board[row][col].correctValue;
-  
-  // Display the correct number temporarily
-  const tempDisplay = document.createElement('div');
-  tempDisplay.className = 'hint-display';
-  tempDisplay.textContent = correctValue;
-  tempDisplay.style.position = 'absolute';
-  tempDisplay.style.top = `${element.offsetTop}px`;
-  tempDisplay.style.left = `${element.offsetLeft}px`;
-  tempDisplay.style.width = `${element.offsetWidth}px`;
-  tempDisplay.style.height = `${element.offsetHeight}px`;
-  tempDisplay.style.display = 'flex';
-  tempDisplay.style.alignItems = 'center';
-  tempDisplay.style.justifyContent = 'center';
-  tempDisplay.style.fontSize = '2rem';
-  tempDisplay.style.fontWeight = 'bold';
-  tempDisplay.style.color = 'rgba(0, 0, 0, 0.7)';
-  tempDisplay.style.backgroundColor = 'rgba(255, 249, 204, 0.8)';
-  tempDisplay.style.borderRadius = '8px';
-  tempDisplay.style.zIndex = '5';
-  
-  document.querySelector('.container').appendChild(tempDisplay);
-  
-  // Animate and remove after 3 seconds
-  anime({
-    targets: tempDisplay,
-    opacity: [0, 1, 1, 0],
-    scale: [0.8, 1.2, 1, 0.8],
-    duration: 3000,
-    easing: 'easeInOutQuad',
-    complete: () => {
-      tempDisplay.remove();
+
+  // Store original state if needed (e.g., if it had temporary user input)
+  const originalText = element.textContent;
+  const originalClasses = element.className;
+
+  // Apply flash styling
+  element.textContent = correctValue; // Show the correct number
+  element.classList.add('hint-flash'); // Add class for animation
+
+  // Remove flash styling and text after 3 seconds
+  setTimeout(() => {
+    if (element) { // Check if element still exists (might have been filled)
+      element.textContent = originalText; // Restore original text (likely empty)
+      element.className = originalClasses; // Restore original classes
     }
-  });
+  }, 3000);
   
   // Deduct points
   gameState.score = Math.max(0, gameState.score - 10);
