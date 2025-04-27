@@ -209,6 +209,24 @@ h1 {
   background-color: #b3e5fc;
 }
 
+/* Style for the next riddle button */
+.next-riddle-button {
+  /* Add any specific styles if needed */
+  transition: opacity 0.3s ease, background-color 0.3s ease;
+}
+
+.next-riddle-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #e0e0e0; /* Greyed out */
+}
+
+.next-riddle-button.enabled {
+  opacity: 1;
+  cursor: pointer;
+  background-color: #81c784; /* Green when enabled */
+}
+
 /* Number picker */
 .number-picker {
   position: fixed;
@@ -498,6 +516,17 @@ h1 {
   .cell.selected {
     outline-color: #87ceeb;
     background-color: #395f7f; /* Keep hover color */
+  }
+  
+  /* Dark mode next riddle button */
+  .next-riddle-button:disabled {
+    background-color: #555;
+    opacity: 0.4;
+  }
+
+  .next-riddle-button.enabled {
+    background-color: #4caf50;
+    opacity: 1;
   }
 }
 

@@ -1,4 +1,4 @@
-import { getLevelData } from './levels.js';
+import { getLevelData, levels, getTotalLevelCount } from './levels.js';
 import { renderBoard, renderNumberPicker, updateScoreDisplay, renderLevelSelect, showCelebration, playSound } from './ui.js';
 
 // Game state
@@ -193,6 +193,16 @@ function renderGameScreen() {
   hintButton.addEventListener('click', handleHint);
   controls.appendChild(hintButton);
   
+  // Next Riddle Button (initially disabled)
+  const nextRiddleButton = document.createElement('button');
+  nextRiddleButton.id = 'next-riddle-btn'; // Add ID for easy selection
+  nextRiddleButton.className = 'button next-riddle-button';
+  nextRiddleButton.textContent = 'Next Riddle →';
+  nextRiddleButton.disabled = true; // Start disabled
+  nextRiddleButton.addEventListener('click', goToNextRiddle);
+  controls.appendChild(nextRiddleButton);
+  console.log('Next Riddle button added to controls (disabled).'); // LOG
+  
   // Back button
   const backButton = document.createElement('div');
   backButton.className = 'button';
@@ -386,7 +396,7 @@ function checkLevelComplete() {
 
 // Handle level complete
 function handleLevelComplete() {
-  console.log('--- handleLevelComplete START ---');
+  console.log('--- handleLevelComplete START ---'); // LOG
   // Calculate stars based on hints used and time
   const stars = calculateStars();
   
@@ -405,60 +415,29 @@ function handleLevelComplete() {
   saveProgress();
   
   // Show celebration animation (stars and confetti)
-  console.log('Calling showCelebration...');
+  console.log('Calling showCelebration...'); // LOG
   showCelebration(stars);
-  console.log('Returned from showCelebration.');
+  console.log('Returned from showCelebration.'); // LOG
   
   // Speak congratulations
   speakText("Great job!");
   
-  // Show "Next Riddle" button after a short delay (allows stars animation to play)
-  console.log('Setting timeout for Next Riddle button...');
+  // Enable the "Next Riddle" button after a short delay
+  console.log('Setting timeout to enable Next Riddle button...'); // LOG
   setTimeout(() => {
-    console.log('--- Next Riddle setTimeout EXECUTED ---');
-    const celebrationsContainer = document.querySelector('.celebrations');
-    console.log('Celebrations container for button:', celebrationsContainer);
-    if (!celebrationsContainer) return;
-
-    // Remove any previous message/button
-    const existingButton = celebrationsContainer.querySelector('.next-riddle-button');
-    if (existingButton) existingButton.remove();
-    const existingMessage = celebrationsContainer.querySelector('.celebration-message');
-    if (existingMessage) existingMessage.remove(); 
-    
-    const nextButton = document.createElement('button');
-    nextButton.className = 'button primary next-riddle-button';
-    nextButton.textContent = 'Next Riddle →';
-    nextButton.style.position = 'absolute';
-    nextButton.style.bottom = '15%';
-    nextButton.style.left = '50%';
-    nextButton.style.transform = 'translateX(-50%)';
-    nextButton.style.fontSize = '1.5rem';
-    nextButton.style.padding = '15px 30px';
-    nextButton.style.zIndex = '2100'; // Ensure it's above stars/confetti
-    
-    nextButton.addEventListener('click', () => {
-      // Logic to go to next sub-level or level select
-      // For now, just go back to level select
-      console.log('Next Riddle button clicked');
-      showLevelSelect();
-    });
-
-    celebrationsContainer.appendChild(nextButton);
-    console.log('Next Riddle button appended.');
-    console.log('Next Button element after append:', celebrationsContainer.querySelector('.next-riddle-button'));
-
-    // Optional: Animate button appearance
-    /* anime({
-      targets: nextButton,
-      opacity: [0, 1],
-      scale: [0.8, 1],
-      duration: 500,
-      easing: 'easeOutQuad'
-    }); */ // Temporarily commented out anime call
-
+    console.log('--- Next Riddle setTimeout EXECUTED ---'); // LOG
+    const nextButton = document.getElementById('next-riddle-btn');
+    console.log('Found Next Riddle button element:', nextButton); // LOG
+    if (nextButton) {
+        nextButton.disabled = false;
+        console.log('Next Riddle button ENABLED.'); // LOG
+        // Optional: Add a visual cue like a class
+        nextButton.classList.add('enabled'); 
+    } else {
+        console.error('Could not find Next Riddle button to enable!'); // LOG
+    }
   }, 1500); // Delay to show after star animation starts
-  console.log('--- handleLevelComplete END ---');
+  console.log('--- handleLevelComplete END ---'); // LOG
 }
 
 // Calculate stars based on performance
@@ -588,3 +567,36 @@ function speakText(text) {
 
 // Expose resetProgress globally for the button
 window.resetGameProgress = resetProgress; 
+
+// Function to navigate to the next riddle
+function goToNextRiddle() {
+  console.log('goToNextRiddle called.');
+  let nextLevelId = gameState.currentLevel;
+  let nextSubLevelId = gameState.currentSubLevel + 1;
+
+  // Check if there are more sublevels in the current level
+  const currentLevelData = getLevelData(gameState.currentLevel, 1); // Need level info
+  const subLevelCount = levels.find(l => l.id === gameState.currentLevel)?.subLevels.length || 3; // Get sublevel count
+
+  if (nextSubLevelId > subLevelCount) {
+    // Move to the first sublevel of the next level
+    nextSubLevelId = 1;
+    nextLevelId++;
+    // Handle wrapping after the last level (e.g., go back to level 1 or stay on map)
+    const totalLevels = getTotalLevelCount(); // Need a function in levels.js for this
+    if (nextLevelId > totalLevels) {
+      console.log('All levels completed! Showing level select.');
+      showLevelSelect();
+      return; // Stop here
+    }
+    // Check if the next level is unlocked
+    if (!gameState.unlockedLevels.includes(nextLevelId)) {
+       console.log(`Next level ${nextLevelId} is locked. Showing level select.`);
+       showLevelSelect(); // Go to map if next level isn't unlocked
+       return;
+    }
+  }
+  
+  console.log(`Starting next riddle: Level ${nextLevelId}, SubLevel ${nextSubLevelId}`);
+  startLevel(nextLevelId, nextSubLevelId);
+}

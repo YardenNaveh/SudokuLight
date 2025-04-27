@@ -178,6 +178,9 @@ export function getAllLevels() {
   return levels;
 }
 
+// Export levels array for direct access in game.js
+export { levels };
+
 // Get total number of levels
 export function getTotalLevelCount() {
   return levels.length;

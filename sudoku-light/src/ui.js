@@ -157,7 +157,7 @@ export function showCelebration(stars) {
     celebrations.appendChild(confetti);
     
     // Animate each confetti piece
-    anime({
+    /* anime({
       targets: confetti,
       translateY: [
         { value: window.innerHeight + 50, duration: 1000 + Math.random() * 3000 }
@@ -179,7 +179,7 @@ export function showCelebration(stars) {
       complete: function() {
         confetti.remove();
       }
-    });
+    }); */ // Commented out confetti anime call
   }
   
   // Create stars based on count
@@ -206,14 +206,14 @@ export function showCelebration(stars) {
     
     // Animate stars appearing one by one
     if (i < stars) {
-      anime({
+      /* anime({
         targets: star,
         scale: [0, 1.2, 1],
         opacity: [0, 1],
         delay: i * 300,
         duration: 600,
         easing: 'easeOutElastic(1, .5)'
-      });
+      }); */ // Commented out problematic anime call AGAIN
     }
   }
   
