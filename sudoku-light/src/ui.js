@@ -57,9 +57,26 @@ export function updateScoreDisplay(score) {
 }
 
 // Renders the level select screen
-export function renderLevelSelect(unlockedLevels, onLevelSelect) {
+export function renderLevelSelect(unlockedLevels, onLevelSelect, score = 0) {
   const app = document.getElementById('app');
   app.innerHTML = '';
+  
+  // Score display
+  const scoreDisplay = document.createElement('div');
+  scoreDisplay.className = 'map-score-display';
+  scoreDisplay.innerHTML = `
+    <div class="score">
+      <div class="score-label">Total Score</div>
+      <div class="score-number">${score}</div>
+    </div>
+  `;
+  scoreDisplay.style.margin = '10px 0';
+  scoreDisplay.style.padding = '10px';
+  scoreDisplay.style.backgroundColor = '#f9f9f9';
+  scoreDisplay.style.borderRadius = '10px';
+  scoreDisplay.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+  scoreDisplay.style.display = 'inline-block';
+  app.appendChild(scoreDisplay);
   
   // Title
   const title = document.createElement('h1');
@@ -144,7 +161,7 @@ export function showCelebration(stars) {
   const starsContainer = document.createElement('div');
   starsContainer.className = 'stars-container';
   starsContainer.style.position = 'absolute';
-  starsContainer.style.top = '30%';
+  starsContainer.style.top = '60%';
   starsContainer.style.left = '50%';
   starsContainer.style.transform = 'translate(-50%, -50%)';
   starsContainer.style.display = 'flex';

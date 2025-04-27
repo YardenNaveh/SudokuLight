@@ -99,7 +99,7 @@ export function showLevelSelect() {
   renderLevelSelect(gameState.unlockedLevels, level => {
     gameState.currentLevel = level;
     showSubLevelSelect(level);
-  });
+  }, gameState.score);
 }
 
 // Show sub-level select screen
