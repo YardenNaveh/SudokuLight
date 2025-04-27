@@ -148,7 +148,7 @@ export function renderLevelSelect(unlockedLevels, onLevelSelect, score = 0) {
 }
 
 // Shows celebration animation
-export function showCelebration(stars) {
+export function showCelebration(stars, playerName = '') {
   const celebrations = document.querySelector('.celebrations');
   
   // Clear any existing celebrations
@@ -165,11 +165,19 @@ export function showCelebration(stars) {
   starsContainer.style.left = '50%';
   starsContainer.style.transform = 'translate(-50%, -50%)';
   starsContainer.style.display = 'flex';
+  starsContainer.style.flexDirection = 'column';
+  starsContainer.style.alignItems = 'center';
   starsContainer.style.justifyContent = 'center';
   starsContainer.style.gap = '15px';
   starsContainer.style.zIndex = '2000';
   // Stars should be visible but not interfere with interactions
   starsContainer.style.pointerEvents = 'none';
+  
+  // Stars row
+  const starsRow = document.createElement('div');
+  starsRow.style.display = 'flex';
+  starsRow.style.justifyContent = 'center';
+  starsRow.style.gap = '15px';
   
   for (let i = 0; i < 3; i++) {
     const star = document.createElement('div');
@@ -183,7 +191,23 @@ export function showCelebration(stars) {
       star.style.animation = `star-appear 0.6s ${i * 0.3}s forwards`;
     }
     
-    starsContainer.appendChild(star);
+    starsRow.appendChild(star);
+  }
+  
+  starsContainer.appendChild(starsRow);
+  
+  // Add congratulation text with player name if available
+  if (playerName) {
+    const congratsText = document.createElement('div');
+    congratsText.className = 'congrats-text';
+    congratsText.textContent = `Good job, ${playerName}!`;
+    congratsText.style.fontSize = '1.8rem';
+    congratsText.style.fontWeight = 'bold';
+    congratsText.style.color = '#FF9800';
+    congratsText.style.marginTop = '20px';
+    congratsText.style.textShadow = '0 1px 2px rgba(0,0,0,0.2)';
+    congratsText.style.animation = 'fadeIn 1s forwards';
+    starsContainer.appendChild(congratsText);
   }
   
   celebrations.appendChild(starsContainer);

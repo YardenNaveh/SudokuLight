@@ -372,6 +372,12 @@ h1 {
   50% { opacity: 1; }
 }
 
+/* Animation for congratulation text */
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 /* Celebrations */
 .celebrations {
   position: fixed;
@@ -545,6 +551,22 @@ h1 {
   
   .parent-dashboard {
     background-color: rgba(36, 36, 36, 0.95);
+  }
+  
+  /* Name input dark mode */
+  .player-name-input {
+    background-color: #333;
+    color: #fff;
+    border-color: #555;
+  }
+  
+  .name-input-skip a {
+    color: #aaa;
+  }
+  
+  .congrats-text {
+    color: #FFB74D !important; /* Brighter orange for dark mode */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
   }
   
   /* Added dark mode selected cell */

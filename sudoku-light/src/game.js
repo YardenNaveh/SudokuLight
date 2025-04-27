@@ -11,6 +11,7 @@ let gameState = {
   currentEmptyCell: null,
   unlockedLevels: [1],
   levelStars: {},
+  playerName: '',
 };
 
 // Initialize game
@@ -30,11 +31,87 @@ export function initGame() {
   // Add event listener to splash screen
   document.querySelector('.splash-screen').addEventListener('click', () => {
     document.querySelector('.splash-screen').style.display = 'none';
-    showLevelSelect();
+    showNameInput();
   });
   
   // Set up parent dashboard (hidden behind long press)
   setupParentDashboard();
+}
+
+// Show name input screen
+function showNameInput() {
+  const app = document.getElementById('app');
+  
+  // Create name input screen
+  app.innerHTML = `
+    <div class="name-input-screen">
+      <h1>What's your name?</h1>
+      <div class="name-input-container">
+        <input type="text" id="player-name" class="player-name-input" placeholder="Enter your name" maxlength="20" autocomplete="off">
+        <button id="start-game-btn" class="button primary">Let's Play!</button>
+      </div>
+      <div class="name-input-skip">or <a href="#" id="skip-name">skip</a></div>
+    </div>
+  `;
+  
+  // Style the input screen
+  const nameInputScreen = document.querySelector('.name-input-screen');
+  nameInputScreen.style.display = 'flex';
+  nameInputScreen.style.flexDirection = 'column';
+  nameInputScreen.style.alignItems = 'center';
+  nameInputScreen.style.justifyContent = 'center';
+  nameInputScreen.style.height = '100vh';
+  
+  const nameInput = document.getElementById('player-name');
+  nameInput.style.fontSize = '1.5rem';
+  nameInput.style.padding = '10px 15px';
+  nameInput.style.borderRadius = '10px';
+  nameInput.style.border = '2px solid #ccc';
+  nameInput.style.marginBottom = '20px';
+  nameInput.style.textAlign = 'center';
+  nameInput.style.width = '80%';
+  nameInput.style.maxWidth = '300px';
+  
+  const startButton = document.getElementById('start-game-btn');
+  startButton.style.fontSize = '1.2rem';
+  startButton.style.padding = '10px 20px';
+  startButton.style.margin = '10px auto';
+  startButton.style.display = 'block';
+  
+  const skipLink = document.querySelector('.name-input-skip');
+  skipLink.style.marginTop = '20px';
+  skipLink.style.fontSize = '1rem';
+  skipLink.style.color = '#666';
+  
+  // Focus the input
+  nameInput.focus();
+  
+  // Add event listeners
+  startButton.addEventListener('click', handleNameSubmit);
+  nameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      handleNameSubmit();
+    }
+  });
+  
+  document.getElementById('skip-name').addEventListener('click', (e) => {
+    e.preventDefault();
+    gameState.playerName = '';
+    showLevelSelect();
+  });
+}
+
+// Handle name submission
+function handleNameSubmit() {
+  const nameInput = document.getElementById('player-name');
+  const name = nameInput.value.trim();
+  
+  if (name) {
+    gameState.playerName = name;
+    saveProgress();
+  }
+  
+  showLevelSelect();
 }
 
 // Load progress from localStorage
@@ -49,6 +126,7 @@ function loadProgress() {
       gameState.score = parsedState.score || 0;
       gameState.unlockedLevels = parsedState.unlockedLevels || [1];
       gameState.levelStars = parsedState.levelStars || {};
+      gameState.playerName = parsedState.playerName || '';
       console.log('Applied loaded state to gameState.');
     } catch (e) {
       console.error('Failed to parse saved state:', e);
@@ -67,7 +145,8 @@ export function saveProgress() {
       currentLevel: gameState.currentLevel,
       score: gameState.score,
       unlockedLevels: gameState.unlockedLevels,
-      levelStars: gameState.levelStars
+      levelStars: gameState.levelStars,
+      playerName: gameState.playerName
     };
     localStorage.setItem('sudokuLightState', JSON.stringify(stateToSave));
     console.log('Progress saved:', stateToSave);
@@ -89,6 +168,7 @@ export function resetProgress() {
     currentEmptyCell: null,
     unlockedLevels: [1],
     levelStars: {},
+    playerName: '',
   };
   console.log('GameState reset.');
   showLevelSelect();
@@ -317,25 +397,19 @@ export function handleNumberPick(number) {
   const cell = gameState.board[row][col];
   console.log(`Checking cell [${row}, ${col}]. Correct value: ${cell.correctValue}`);
   
-  // Close the number picker (without the problematic animation for now)
-  const numberPicker = document.querySelector('.number-picker');
-  if (numberPicker) { // Check if picker exists
-    numberPicker.classList.remove('open');
-    /* anime({
-      targets: numberPicker,
-      translateY: ['0%', '100%'],
-      duration: 300,
-      easing: 'easeInCubic'
-    }); */
-  } else {
-    console.error('Number picker element not found when trying to close!');
-  }
-  
   // Check if correct
   if (number === cell.correctValue) {
     console.log('Correct number picked!');
     // Update board state
     gameState.board[row][col].value = number;
+    
+    // Close the number picker when correct
+    const numberPicker = document.querySelector('.number-picker');
+    if (numberPicker) { // Check if picker exists
+      numberPicker.classList.remove('open');
+    } else {
+      console.error('Number picker element not found when trying to close!');
+    }
     
     // Update cell display
     element.textContent = number;
@@ -366,17 +440,20 @@ export function handleNumberPick(number) {
     if (checkLevelComplete()) {
       handleLevelComplete();
     }
+    
+    // Reset current empty cell only for correct answers
+    console.log('Resetting current empty cell.');
+    gameState.currentEmptyCell = null;
   } else {
     console.log('Incorrect number picked.');
-    // Wrong answer
+    // Wrong answer - keep number picker open and cell selected
     element.classList.add('shake');
     setTimeout(() => element.classList.remove('shake'), 500);
     playSound('wrong');
+    
+    // Do NOT reset currentEmptyCell to keep the cell selected
+    // Do NOT close the number picker to allow for another choice
   }
-  
-  // Reset current empty cell
-  console.log('Resetting current empty cell.');
-  gameState.currentEmptyCell = null;
 }
 
 // Check if level is complete
@@ -416,11 +493,15 @@ function handleLevelComplete() {
   
   // Show celebration animation (stars and confetti)
   console.log('Calling showCelebration...'); // LOG
-  showCelebration(stars);
+  showCelebration(stars, gameState.playerName);  // Pass player name to celebration
   console.log('Returned from showCelebration.'); // LOG
   
-  // Speak congratulations
-  speakText("Great job!");
+  // Speak congratulations with player's name if available
+  if (gameState.playerName) {
+    speakText(`Great job, ${gameState.playerName}!`);
+  } else {
+    speakText("Great job!");
+  }
   
   // Enable the "Next Riddle" button immediately
   console.log('Enabling Next Riddle button...'); // LOG
@@ -531,6 +612,7 @@ function setupParentDashboard() {
       currentEmptyCell: null,
       unlockedLevels: [1],
       levelStars: {},
+      playerName: '',
     };
     document.querySelector('.parent-dashboard').classList.remove('visible');
     initGame();
