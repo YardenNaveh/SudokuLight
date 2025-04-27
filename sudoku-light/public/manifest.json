@@ -1,0 +1,17 @@
+{
+  "name": "Sudoku Buddies",
+  "short_name": "Sudoku Buddies",
+  "description": "A fun game that teaches young children the logic of Sudoku through graduated mini-puzzles",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#f7f1ff",
+  "theme_color": "#f7f1ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+} 
