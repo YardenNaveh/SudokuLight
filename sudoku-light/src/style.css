@@ -493,4 +493,17 @@ h1 {
   .parent-dashboard {
     background-color: rgba(36, 36, 36, 0.95);
   }
+  
+  /* Added dark mode selected cell */
+  .cell.selected {
+    outline-color: #87ceeb;
+    background-color: #395f7f; /* Keep hover color */
+  }
+}
+
+/* Added style for selected cell */
+.cell.selected {
+  outline: 3px solid #646cff;
+  outline-offset: -3px;
+  background-color: #c1e8ff; /* Keep hover color */
 }

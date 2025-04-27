@@ -201,10 +201,19 @@ export function handleCellTap(cellElement, rowIndex, colIndex) {
   console.log('Cell tapped:', rowIndex, colIndex);
   const cell = gameState.board[rowIndex][colIndex];
   
+  // Remove highlight from previously selected cell
+  const previouslySelected = document.querySelector('.cell.selected');
+  if (previouslySelected) {
+    previouslySelected.classList.remove('selected');
+  }
+  
   // Only handle empty cells
   if (cell && cell.value === null) {
     console.log('Empty cell found. Preparing number picker.');
     gameState.currentEmptyCell = { element: cellElement, row: rowIndex, col: colIndex };
+    
+    // Highlight the selected cell
+    cellElement.classList.add('selected');
     
     // Get the level data to know which numbers to show
     const levelData = getLevelData(gameState.currentLevel, gameState.currentSubLevel);
@@ -217,14 +226,14 @@ export function handleCellTap(cellElement, rowIndex, colIndex) {
       return;
     }
     
-    // Show the number picker with animation
+    // Show the number picker (without the problematic animation for now)
     numberPicker.classList.add('open');
-    anime({
+    /* anime({
       targets: numberPicker,
       translateY: ['100%', '0%'],
       duration: 300,
       easing: 'easeOutCubic'
-    });
+    }); */
     
     // Populate number picker with correct options
     populateNumberPicker(levelData.numbers);
@@ -264,15 +273,19 @@ export function handleNumberPick(number) {
   const { row, col, element } = gameState.currentEmptyCell;
   const cell = gameState.board[row][col];
   
-  // Close the number picker
-  const numberPicker = document.querySelector('.number-picker');
+  // Remove highlight from the cell after picking
+  if (element) {
+    element.classList.remove('selected');
+  }
+  
+  // Close the number picker (without the problematic animation for now)
   numberPicker.classList.remove('open');
-  anime({
+  /* anime({
     targets: numberPicker,
     translateY: ['0%', '100%'],
     duration: 300,
     easing: 'easeInCubic'
-  });
+  }); */
   
   // Check if correct
   if (number === cell.correctValue) {
