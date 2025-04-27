@@ -158,10 +158,18 @@ export function renderLevelSelect(unlockedLevels, onLevelSelect, score = 0) {
   resetButton.style.textAlign = 'center';
   resetButton.style.backgroundColor = '#ffcdd2'; // Light red
   resetButton.addEventListener('click', () => {
-    if (confirm('Are you sure you want to reset all progress?')) {
-      // Need to import or access resetProgress function from game.js
-      // For now, let's assume it's globally accessible or imported
-      window.resetGameProgress(); // We'll expose it globally from game.js
+    // Prompt for password first
+    const password = prompt("Please enter parent password to reset progress:");
+    
+    // Only proceed if password is correct
+    if (password === "1234") {
+      if (confirm('Are you sure you want to reset all progress?')) {
+        // Need to import or access resetProgress function from game.js
+        // For now, let's assume it's globally accessible or imported
+        window.resetGameProgress(); // We'll expose it globally from game.js
+      }
+    } else if (password !== null) { // Only show error if user didn't cancel
+      alert("Incorrect password. Progress not reset.");
     }
   });
   app.appendChild(resetButton);

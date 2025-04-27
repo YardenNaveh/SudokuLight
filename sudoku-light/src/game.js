@@ -656,20 +656,28 @@ function setupParentDashboard() {
   });
   
   document.getElementById('reset-progress').addEventListener('click', () => {
-    localStorage.removeItem('sudokuLightState');
-    gameState = {
-      currentLevel: 1,
-      currentSubLevel: 1,
-      score: 0,
-      hintsLeft: 3,
-      board: [],
-      currentEmptyCell: null,
-      unlockedLevels: [1],
-      levelStars: {},
-      playerName: '',
-    };
-    document.querySelector('.parent-dashboard').classList.remove('visible');
-    initGame();
+    // Prompt for password
+    const password = prompt("Please enter parent password to reset progress:");
+    
+    // Check if password is correct
+    if (password === "1234") {
+      localStorage.removeItem('sudokuLightState');
+      gameState = {
+        currentLevel: 1,
+        currentSubLevel: 1,
+        score: 0,
+        hintsLeft: 3,
+        board: [],
+        currentEmptyCell: null,
+        unlockedLevels: [1],
+        levelStars: {},
+        playerName: '',
+      };
+      document.querySelector('.parent-dashboard').classList.remove('visible');
+      initGame();
+    } else if (password !== null) { // Only show error if user didn't cancel
+      alert("Incorrect password. Progress not reset.");
+    }
   });
   
   document.getElementById('toggle-audio').addEventListener('click', () => {
