@@ -111,6 +111,23 @@ export function renderLevelSelect(unlockedLevels, onLevelSelect) {
   });
   
   app.appendChild(practiceButton);
+  
+  // Reset progress button
+  const resetButton = document.createElement('div');
+  resetButton.className = 'button reset-button';
+  resetButton.textContent = '🔄 Reset Progress';
+  resetButton.style.margin = '10px auto';
+  resetButton.style.width = '200px';
+  resetButton.style.textAlign = 'center';
+  resetButton.style.backgroundColor = '#ffcdd2'; // Light red
+  resetButton.addEventListener('click', () => {
+    if (confirm('Are you sure you want to reset all progress?')) {
+      // Need to import or access resetProgress function from game.js
+      // For now, let's assume it's globally accessible or imported
+      window.resetGameProgress(); // We'll expose it globally from game.js
+    }
+  });
+  app.appendChild(resetButton);
 }
 
 // Shows celebration animation
@@ -202,36 +219,9 @@ export function showCelebration(stars) {
   
   celebrations.appendChild(starsContainer);
   
-  // Show celebration message
-  const messageElement = document.createElement('div');
-  messageElement.className = 'celebration-message';
-  messageElement.textContent = 'Great Job!';
-  messageElement.style.position = 'absolute';
-  messageElement.style.top = '50%';
-  messageElement.style.left = '50%';
-  messageElement.style.transform = 'translate(-50%, -50%)';
-  messageElement.style.fontSize = '3rem';
-  messageElement.style.fontWeight = 'bold';
-  messageElement.style.color = '#fff';
-  messageElement.style.textShadow = '0 2px 4px rgba(0,0,0,0.3)';
-  messageElement.style.opacity = '0';
-  messageElement.style.zIndex = '2000';
-  
-  celebrations.appendChild(messageElement);
-  
-  // Animate message
-  anime({
-    targets: messageElement,
-    opacity: [0, 1],
-    translateY: ['-30%', '-50%'],
-    delay: 500,
-    duration: 800,
-    easing: 'easeOutQuad'
-  });
-  
-  // Play celebration sound
-  playSound('celebration');
-}
+    // Play celebration sound
+    playSound('celebration');
+  }
 
 // Play a sound
 export function playSound(type) {

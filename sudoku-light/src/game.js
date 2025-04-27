@@ -39,30 +39,59 @@ export function initGame() {
 
 // Load progress from localStorage
 function loadProgress() {
-  const savedState = localStorage.getItem('sudokuBuddiesState');
+  console.log('Attempting to load progress...');
+  const savedState = localStorage.getItem('sudokuLightState');
   if (savedState) {
     try {
       const parsedState = JSON.parse(savedState);
-      gameState = { ...gameState, ...parsedState };
+      console.log('Loaded state:', parsedState);
+      gameState.currentLevel = parsedState.currentLevel || 1;
+      gameState.score = parsedState.score || 0;
+      gameState.unlockedLevels = parsedState.unlockedLevels || [1];
+      gameState.levelStars = parsedState.levelStars || {};
+      console.log('Applied loaded state to gameState.');
     } catch (e) {
-      console.error('Failed to parse saved state', e);
+      console.error('Failed to parse saved state:', e);
+      localStorage.removeItem('sudokuLightState');
     }
+  } else {
+    console.log('No saved progress found.');
   }
+  updateScoreDisplay(gameState.score);
 }
 
 // Save progress to localStorage
 export function saveProgress() {
   try {
-    localStorage.setItem('sudokuBuddiesState', JSON.stringify({
+    const stateToSave = {
       currentLevel: gameState.currentLevel,
-      currentSubLevel: gameState.currentSubLevel,
       score: gameState.score,
       unlockedLevels: gameState.unlockedLevels,
       levelStars: gameState.levelStars
-    }));
+    };
+    localStorage.setItem('sudokuLightState', JSON.stringify(stateToSave));
+    console.log('Progress saved:', stateToSave);
   } catch (e) {
-    console.error('Failed to save state', e);
+    console.error('Failed to save state:', e);
   }
+}
+
+// Function to reset progress
+export function resetProgress() {
+  console.log('Resetting progress...');
+  localStorage.removeItem('sudokuLightState');
+  gameState = {
+    currentLevel: 1,
+    currentSubLevel: 1,
+    score: 0,
+    hintsLeft: 3,
+    board: [],
+    currentEmptyCell: null,
+    unlockedLevels: [1],
+    levelStars: {},
+  };
+  console.log('GameState reset.');
+  showLevelSelect();
 }
 
 // Show level select screen
@@ -310,9 +339,12 @@ export function handleNumberPick(number) {
     setTimeout(() => element.classList.remove('filled-correctly'), 400);
     
     // Add score and play sound
-    gameState.score += 50;
+    gameState.score += 1;
     updateScoreDisplay(gameState.score);
     console.log('Score updated in state and updateScoreDisplay called. New score:', gameState.score);
+    saveProgress();
+    
+    playSound('correct');
     
     // Use haptic feedback if available
     if (navigator.vibrate) {
@@ -414,6 +446,7 @@ function handleLevelComplete() {
 
     celebrationsContainer.appendChild(nextButton);
     console.log('Next Riddle button appended.');
+    console.log('Next Button element after append:', celebrationsContainer.querySelector('.next-riddle-button'));
 
     // Optional: Animate button appearance
     /* anime({
@@ -512,7 +545,7 @@ function setupParentDashboard() {
   
   // Add event listeners for dashboard buttons
   document.getElementById('reset-progress').addEventListener('click', () => {
-    localStorage.removeItem('sudokuBuddiesState');
+    localStorage.removeItem('sudokuLightState');
     gameState = {
       currentLevel: 1,
       currentSubLevel: 1,
@@ -551,4 +584,7 @@ function speakText(text) {
     utterance.pitch = 1.2; // Slightly higher pitch
     speechSynthesis.speak(utterance);
   }
-} 
+}
+
+// Expose resetProgress globally for the button
+window.resetGameProgress = resetProgress; 
