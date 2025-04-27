@@ -422,21 +422,18 @@ function handleLevelComplete() {
   // Speak congratulations
   speakText("Great job!");
   
-  // Enable the "Next Riddle" button after a short delay
-  console.log('Setting timeout to enable Next Riddle button...'); // LOG
-  setTimeout(() => {
-    console.log('--- Next Riddle setTimeout EXECUTED ---'); // LOG
-    const nextButton = document.getElementById('next-riddle-btn');
-    console.log('Found Next Riddle button element:', nextButton); // LOG
-    if (nextButton) {
-        nextButton.disabled = false;
-        console.log('Next Riddle button ENABLED.'); // LOG
-        // Optional: Add a visual cue like a class
-        nextButton.classList.add('enabled'); 
-    } else {
-        console.error('Could not find Next Riddle button to enable!'); // LOG
-    }
-  }, 1500); // Delay to show after star animation starts
+  // Enable the "Next Riddle" button immediately
+  console.log('Enabling Next Riddle button...'); // LOG
+  const nextButton = document.getElementById('next-riddle-btn');
+  console.log('Found Next Riddle button element:', nextButton); // LOG
+  if (nextButton) {
+    nextButton.disabled = false;
+    console.log('Next Riddle button ENABLED.'); // LOG
+    // Optional: Add a visual cue like a class
+    nextButton.classList.add('enabled'); 
+  } else {
+    console.error('Could not find Next Riddle button to enable!'); // LOG
+  }
   console.log('--- handleLevelComplete END ---'); // LOG
 }
 

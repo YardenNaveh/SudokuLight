@@ -137,52 +137,10 @@ export function showCelebration(stars) {
   // Clear any existing celebrations
   celebrations.innerHTML = '';
   
-  // Create confetti
-  for (let i = 0; i < 50; i++) {
-    const confetti = document.createElement('div');
-    confetti.className = 'confetti';
-    
-    // Random position
-    const x = Math.random() * window.innerWidth;
-    const y = -20 - Math.random() * 100;
-    
-    // Random size
-    const size = 5 + Math.random() * 15;
-    
-    confetti.style.width = `${size}px`;
-    confetti.style.height = `${size}px`;
-    confetti.style.left = `${x}px`;
-    confetti.style.top = `${y}px`;
-    
-    celebrations.appendChild(confetti);
-    
-    // Animate each confetti piece
-    /* anime({
-      targets: confetti,
-      translateY: [
-        { value: window.innerHeight + 50, duration: 1000 + Math.random() * 3000 }
-      ],
-      translateX: [
-        { value: x + (-50 + Math.random() * 100), duration: 1000 + Math.random() * 3000 }
-      ],
-      rotate: {
-        value: Math.random() * 360,
-        duration: 1000,
-        easing: 'easeInOutSine'
-      },
-      opacity: [
-        { value: 1, duration: 100 },
-        { value: 1, duration: 800 },
-        { value: 0, duration: 200 }
-      ],
-      easing: 'easeOutSine',
-      complete: function() {
-        confetti.remove();
-      }
-    }); */ // Commented out confetti anime call
-  }
+  // Reduce confetti count for better performance (from 50 to 25)
+  const confettiCount = 25;
   
-  // Create stars based on count
+  // Create stars first to ensure they're visible immediately
   const starsContainer = document.createElement('div');
   starsContainer.className = 'stars-container';
   starsContainer.style.position = 'absolute';
@@ -193,6 +151,8 @@ export function showCelebration(stars) {
   starsContainer.style.justifyContent = 'center';
   starsContainer.style.gap = '15px';
   starsContainer.style.zIndex = '2000';
+  // Stars should be visible but not interfere with interactions
+  starsContainer.style.pointerEvents = 'none';
   
   for (let i = 0; i < 3; i++) {
     const star = document.createElement('div');
@@ -200,28 +160,67 @@ export function showCelebration(stars) {
     star.textContent = '⭐';
     star.style.fontSize = '4rem';
     star.style.opacity = i < stars ? '1' : '0.3';
-    star.style.transform = 'scale(0)';
+    
+    // Simple CSS animation instead of anime.js
+    if (i < stars) {
+      star.style.animation = `star-appear 0.6s ${i * 0.3}s forwards`;
+    }
     
     starsContainer.appendChild(star);
-    
-    // Animate stars appearing one by one
-    if (i < stars) {
-      /* anime({
-        targets: star,
-        scale: [0, 1.2, 1],
-        opacity: [0, 1],
-        delay: i * 300,
-        duration: 600,
-        easing: 'easeOutElastic(1, .5)'
-      }); */ // Commented out problematic anime call AGAIN
-    }
   }
   
   celebrations.appendChild(starsContainer);
   
-    // Play celebration sound
-    playSound('celebration');
-  }
+  // Create a dedicated container for confetti to ensure they don't block interactions
+  const confettiContainer = document.createElement('div');
+  confettiContainer.className = 'confetti-container';
+  confettiContainer.style.position = 'absolute';
+  confettiContainer.style.top = '0';
+  confettiContainer.style.left = '0';
+  confettiContainer.style.width = '100%';
+  confettiContainer.style.height = '100%';
+  confettiContainer.style.pointerEvents = 'none'; // Ensure confetti doesn't block interactions
+  confettiContainer.style.zIndex = '1500';
+  celebrations.appendChild(confettiContainer);
+  
+  // Play celebration sound immediately
+  playSound('celebration');
+  
+  // Use requestAnimationFrame for better performance when creating confetti
+  requestAnimationFrame(() => {
+    // Create confetti in batches to improve performance
+    for (let i = 0; i < confettiCount; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      
+      // Random position
+      const x = Math.random() * window.innerWidth;
+      const y = -20 - Math.random() * 100;
+      
+      // Random size
+      const size = 5 + Math.random() * 15;
+      
+      confetti.style.width = `${size}px`;
+      confetti.style.height = `${size}px`;
+      confetti.style.left = `${x}px`;
+      confetti.style.top = `${y}px`;
+      confetti.style.pointerEvents = 'none'; // Additional safety to ensure no interaction blocking
+      
+      // Set the animation properties directly to avoid JS overhead
+      confetti.style.animation = `confetti-fall ${1 + Math.random() * 3}s linear forwards`;
+      confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+      
+      confettiContainer.appendChild(confetti);
+      
+      // Remove after animation completes to free up memory
+      setTimeout(() => {
+        if (confettiContainer.contains(confetti)) {
+          confetti.remove();
+        }
+      }, 3000);
+    }
+  });
+}
 
 // Play a sound
 export function playSound(type) {
