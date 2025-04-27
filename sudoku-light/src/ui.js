@@ -1,7 +1,3 @@
-import * as animeModule from 'animejs';
-console.log('animejs module content:', animeModule); // Debug line
-const anime = animeModule.default || animeModule; // Keep the previous attempt for now
-
 // Audio cache
 const audioCache = {};
 
@@ -49,12 +45,12 @@ export function updateScoreDisplay(score) {
   const scoreNumber = document.querySelector('.score-number');
   if (scoreNumber) {
     // Add animation when score changes
-    anime({
+    /* anime({
       targets: scoreNumber,
       scale: [1, 1.2, 1],
       duration: 300,
       easing: 'easeInOutQuad'
-    });
+    }); */ // Commented out problematic anime call
     
     scoreNumber.textContent = score;
   }
@@ -257,7 +253,7 @@ export function playSound(type) {
         audio.volume = 0.5;
       break;
     case 'wrong':
-      audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCgoKCgoKDMzMzMzM0dHR0dHR1VVVVVVVWhoaGhoaHZ2dnZ2doODg4ODg5GRkZGRkZ+fn5+fn6ysrKysrLq6urq6usXFxcXFxdLS0tLS0uDg4ODg4O3t7e3t7f////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAX/+xDEAAPkAFUAZpwAAPnsRAibuQmgOp/wMAABi9GeBgQDxf5ED/4bGBh/+5UQwggw/kQGQEYFJIlFGlscDAwwMlg04DDA4eDVYjgZo/8Z8v//l4+Y/24pWiox4GBgAGIyYYGQ4SGOBgYEGPgOYcGB7pmHAqWN0KjxLf/+3DE0RSKPVVdeA5rirn4qv9jTN/5T4GDwQahA4MHAQwOChgMMQCgwUIh5gwGBwcEdikKDxKMGhMxWBDBQGBiqZHEAYFLpl0DCQmEAgcYzSRQLAwAQDDYQOqhoIHGA0EggZJDZg0aTaAMZLHg4cGHQwYvA5hQSmAQ0NtlZQYOBQsulixiUJGxnP/sYEMGHhEYNCZgobGk2j/zGXn/+LFRnUXXRQcqAhlT//7cMTFFNZ7o42cEdZA8X///iSIXETsYRD0Zh1f+3JBSYnAQENDhQyYRjIzOPD0xGCDCYHPmnw8aUYGCQuYQDBhwCGCgiYIARgoFGMSaYcCBiobA5ZHBhgKGHQqcgNxgEbg1Jmpw4YmBQ8wmETSoNGAwCChEqPnBQkGzFOYdDZlsYmFwsYCBhkoEGHSaGmQGYCaBsYvhkOGtjnUaC6xsLmiySeeFiZhfwYWMH0S3GiBUuNKiswQEDRZBP/7kMSpFGxLkVm9nFyJcGJDAZiLhxM1BwcCgIBB4LBICDCLkDBDscDGdg4gxTYMGWDFYYOGpgwQzQxYOHAocUCgZQMHWDwgQGa0DCAIXGGAw0TCeRDUhoQmDQqY+DJjoXlZjTUIAoMNFlkcjhg9lCQICAxUIDK46OLnQgYYTKppMCEERAwMHjz//mU3/+s/1szndf65lN3/+ZTd//M1f//0Df//zt1QYfBIJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7UMSzFMJCzs9mKADmA+e8MYQAAAABWZXKGUMBTUUAAAAAA/QZWKGUxBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+      audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCgoKCgoKDMzMzMzM0dHR0dHR1VVVVVVVWhoaGhoaHZ2dnZ2doODg4ODg5GRkZGRkZ+fn5+fn6ysrKysrLq6urq6usXFxcXFxdLS0tLS0uDg4ODg4O3t7e3t7f////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAX/+xDEAAPkAFUAZpwAAPnsRAibuQmgOp/wMAABi9GeBgQDxf5ED/4bGBh/+5UQwggw/kQGQEYFJIlFGlscDAwwMlg04DDA4eDVYjgZo/8Z8v//l4+Y/24pWiox4GBgAGIyYYGQ4SGOBgYEGPgOYcGB7pmHAqWN0KjxLf/+3DE0RSKPVVdeA5rirn4qv9jTN/5T4GDwQahA4MHAQwOChgMMQCgwUIh5gwGBwcEdikKDxKMGhMxWBDBQGBiqZHEAYFLpl0DCQmEAgcYzSRQLAwAQDDYQOqhoIHGA0EggZJDZg0aTaAMZLHg4cGHQwYvA5hQSmAQ0NtlZQYOBQsulixiUJGxnP/sYEMGHhEYNCZgobGk2j/zGXn/+LFRnUXXRQcqAhlT//7cMTFFNZ7o42cEdZA8X///iSIXETsYRD0Zh1f+3JBSYnAQENDhQyYRjIzOPD0xGCDCYHPmnw8aUYGCQuYQDBhwCGCgiYIARgoFGMSaYcCBiobA5ZHBhgKGHQqcgNxgEbg1Jmpw4YmBQ8wmETSoNGAwCChEqPnBQkGzFOYdDZlsYmFwsYCBhkoEGHSaGmQGYCaBsYvhkOGtjnUaC6xsLmiySeeFiZhfwYWMH0S3GiBUuNKiswQEDRZBP/7kMSpFGxLkVm9nFyJcGJDAZiLhxM1BwcCgIBB4LBICDCLkDBDscDGdg4gxTYMGWDFYYOGpgwQzQxYOHAocUCgZQMHWDwgQGa0DCAIXGGAw0TCeRDUhoQmDQqY+DJjoXlZjTUIAoMNFlkcjhg9lCQICAxUIDK46OLnQgYYTKppMCEERAwMHjz//mU3/+s/1szndf65lN3/+ZTd//M1f//0Df//zt1QYfBIJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7UMSzFMJCzs9mKADmA+e8MYQAAAABWZXKGUMBTUUAAAAAA/QZWKGUxBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
         audio.volume = 0.3;
       break;
     case 'hint':

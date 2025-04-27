@@ -507,3 +507,14 @@ h1 {
   outline-offset: -3px;
   background-color: #c1e8ff; /* Keep hover color */
 }
+
+/* Added animation for correct cell fill */
+@keyframes correct-fill {
+  0% { transform: scale(1); background-color: #d1f7c4; }
+  50% { transform: scale(1.2); background-color: #a5e890; }
+  100% { transform: scale(1); background-color: #d1f7c4; }
+}
+
+.cell.filled-correctly {
+  animation: correct-fill 0.4s ease-in-out;
+}

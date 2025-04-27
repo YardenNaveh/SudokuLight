@@ -1,5 +1,3 @@
-import * as animeModule from 'animejs';
-const anime = animeModule.default || animeModule;
 import { getLevelData } from './levels.js';
 import { renderBoard, renderNumberPicker, updateScoreDisplay, renderLevelSelect, showCelebration, playSound } from './ui.js';
 
@@ -304,14 +302,17 @@ export function handleNumberPick(number) {
     element.textContent = number;
     element.classList.remove('empty');
     element.classList.add('filled');
+    element.classList.add('filled-correctly'); // Add animation class
     if (element) {
       element.classList.remove('selected'); // Remove highlight
     }
+    // Remove animation class after it finishes
+    setTimeout(() => element.classList.remove('filled-correctly'), 400);
     
     // Add score and play sound
     gameState.score += 50;
     updateScoreDisplay(gameState.score);
-    playSound('correct');
+    console.log('Score updated in state and updateScoreDisplay called. New score:', gameState.score);
     
     // Use haptic feedback if available
     if (navigator.vibrate) {
@@ -319,6 +320,7 @@ export function handleNumberPick(number) {
     }
     
     // Check if level complete
+    console.log('Checking if level complete...');
     if (checkLevelComplete()) {
       handleLevelComplete();
     }
@@ -341,40 +343,89 @@ function checkLevelComplete() {
     for (let j = 0; j < gameState.board[i].length; j++) {
       const cell = gameState.board[i][j];
       if (cell && cell.value === null) {
+        console.log('checkLevelComplete: Found empty cell, returning false');
         return false;
       }
     }
   }
+  console.log('checkLevelComplete: No empty cells found, returning true');
   return true;
 }
 
 // Handle level complete
 function handleLevelComplete() {
+  console.log('--- handleLevelComplete START ---');
   // Calculate stars based on hints used and time
   const stars = calculateStars();
   
   // Save stars for this level
   const levelKey = `${gameState.currentLevel}-${gameState.currentSubLevel}`;
-  gameState.levelStars[levelKey] = stars;
+  gameState.levelStars[levelKey] = Math.max(gameState.levelStars[levelKey] || 0, stars); // Don't overwrite with fewer stars
   
   // Update unlocked levels
-  if (!gameState.unlockedLevels.includes(gameState.currentLevel + 1) && gameState.currentSubLevel >= 3) {
-    gameState.unlockedLevels.push(gameState.currentLevel + 1);
+  const nextLevel = gameState.currentLevel + 1;
+  if (!gameState.unlockedLevels.includes(nextLevel) && gameState.currentSubLevel >= 3) { // Assuming 3 sublevels per level
+    console.log(`Unlocking level ${nextLevel}`);
+    gameState.unlockedLevels.push(nextLevel);
   }
   
   // Save progress
   saveProgress();
   
-  // Show celebration
+  // Show celebration animation (stars and confetti)
+  console.log('Calling showCelebration...');
   showCelebration(stars);
+  console.log('Returned from showCelebration.');
   
   // Speak congratulations
   speakText("Great job!");
   
-  // Navigate back to level select after a delay
+  // Show "Next Riddle" button after a short delay (allows stars animation to play)
+  console.log('Setting timeout for Next Riddle button...');
   setTimeout(() => {
-    showLevelSelect();
-  }, 3000);
+    console.log('--- Next Riddle setTimeout EXECUTED ---');
+    const celebrationsContainer = document.querySelector('.celebrations');
+    console.log('Celebrations container for button:', celebrationsContainer);
+    if (!celebrationsContainer) return;
+
+    // Remove any previous message/button
+    const existingButton = celebrationsContainer.querySelector('.next-riddle-button');
+    if (existingButton) existingButton.remove();
+    const existingMessage = celebrationsContainer.querySelector('.celebration-message');
+    if (existingMessage) existingMessage.remove(); 
+    
+    const nextButton = document.createElement('button');
+    nextButton.className = 'button primary next-riddle-button';
+    nextButton.textContent = 'Next Riddle →';
+    nextButton.style.position = 'absolute';
+    nextButton.style.bottom = '15%';
+    nextButton.style.left = '50%';
+    nextButton.style.transform = 'translateX(-50%)';
+    nextButton.style.fontSize = '1.5rem';
+    nextButton.style.padding = '15px 30px';
+    nextButton.style.zIndex = '2100'; // Ensure it's above stars/confetti
+    
+    nextButton.addEventListener('click', () => {
+      // Logic to go to next sub-level or level select
+      // For now, just go back to level select
+      console.log('Next Riddle button clicked');
+      showLevelSelect();
+    });
+
+    celebrationsContainer.appendChild(nextButton);
+    console.log('Next Riddle button appended.');
+
+    // Optional: Animate button appearance
+    /* anime({
+      targets: nextButton,
+      opacity: [0, 1],
+      scale: [0.8, 1],
+      duration: 500,
+      easing: 'easeOutQuad'
+    }); */ // Temporarily commented out anime call
+
+  }, 1500); // Delay to show after star animation starts
+  console.log('--- handleLevelComplete END ---');
 }
 
 // Calculate stars based on performance
@@ -434,8 +485,7 @@ function setupParentDashboard() {
   // Create parent dashboard element
   const dashboard = document.createElement('div');
   dashboard.className = 'parent-dashboard';
-  dashboard.innerHTML = `
-    <h2 class="dashboard-title">Parent Dashboard</h2>
+  dashboard.innerHTML = `    <h2 class="dashboard-title">Parent Dashboard</h2>
     <button class="button dashboard-button" id="reset-progress">Reset Progress</button>
     <button class="button dashboard-button" id="toggle-audio">Toggle Audio</button>
     <button class="button dashboard-button" id="view-scores">View Scores</button>
