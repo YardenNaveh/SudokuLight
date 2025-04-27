@@ -31,7 +31,14 @@ export function initGame() {
   // Add event listener to splash screen
   document.querySelector('.splash-screen').addEventListener('click', () => {
     document.querySelector('.splash-screen').style.display = 'none';
-    showNameInput();
+    
+    // Skip name input if player name already exists
+    if (gameState.playerName) {
+      console.log(`Player name already exists: ${gameState.playerName}. Skipping name input.`);
+      showLevelSelect();
+    } else {
+      showNameInput();
+    }
   });
   
   // Set up parent dashboard (hidden behind long press)
@@ -528,13 +535,50 @@ function calculateStars() {
 
 // Handle hint button
 function handleHint() {
-  if (gameState.hintsLeft <= 0 || !gameState.currentEmptyCell) return;
+  console.log('handleHint called with currentEmptyCell:', gameState.currentEmptyCell);
+  
+  if (gameState.hintsLeft <= 0) {
+    console.log('No hints left.');
+    return;
+  }
+  
+  // If number picker is open but no cell is selected, try to find the selected cell
+  if (!gameState.currentEmptyCell) {
+    const selectedCell = document.querySelector('.cell.selected');
+    console.log('No currentEmptyCell. Looking for selected cell:', selectedCell);
+    
+    if (selectedCell) {
+      // Find the row and column from the DOM
+      const cells = Array.from(document.querySelectorAll('.cell'));
+      const cellIndex = cells.indexOf(selectedCell);
+      if (cellIndex !== -1) {
+        const boardSize = Math.sqrt(cells.length);
+        const row = Math.floor(cellIndex / boardSize);
+        const col = cellIndex % boardSize;
+        console.log(`Found selected cell at row ${row}, col ${col}`);
+        
+        // Recreate the currentEmptyCell object
+        gameState.currentEmptyCell = {
+          element: selectedCell,
+          row: row,
+          col: col
+        };
+      }
+    }
+    
+    // If we still don't have a currentEmptyCell, return
+    if (!gameState.currentEmptyCell) {
+      console.log('Could not find a selected cell for hint.');
+      return;
+    }
+  }
   
   gameState.hintsLeft--;
   updateHintDisplay(gameState.hintsLeft);
   
   const { row, col, element } = gameState.currentEmptyCell;
   const correctValue = gameState.board[row][col].correctValue;
+  console.log(`Showing hint for cell [${row}, ${col}]. Correct value: ${correctValue}`);
 
   // Store original state if needed (e.g., if it had temporary user input)
   const originalText = element.textContent;
@@ -549,6 +593,10 @@ function handleHint() {
     if (element) { // Check if element still exists (might have been filled)
       element.textContent = originalText; // Restore original text (likely empty)
       element.className = originalClasses; // Restore original classes
+      // Ensure 'selected' class is still applied
+      if (gameState.currentEmptyCell && gameState.currentEmptyCell.element === element) {
+        element.classList.add('selected');
+      }
     }
   }, 3000);
   
@@ -576,6 +624,7 @@ function setupParentDashboard() {
   const dashboard = document.createElement('div');
   dashboard.className = 'parent-dashboard';
   dashboard.innerHTML = `    <h2 class="dashboard-title">Parent Dashboard</h2>
+    <button class="button dashboard-button" id="change-name">Change Player Name</button>
     <button class="button dashboard-button" id="reset-progress">Reset Progress</button>
     <button class="button dashboard-button" id="toggle-audio">Toggle Audio</button>
     <button class="button dashboard-button" id="view-scores">View Scores</button>
@@ -601,6 +650,11 @@ function setupParentDashboard() {
   });
   
   // Add event listeners for dashboard buttons
+  document.getElementById('change-name').addEventListener('click', () => {
+    document.querySelector('.parent-dashboard').classList.remove('visible');
+    showNameInput();
+  });
+  
   document.getElementById('reset-progress').addEventListener('click', () => {
     localStorage.removeItem('sudokuLightState');
     gameState = {
@@ -625,7 +679,7 @@ function setupParentDashboard() {
   
   document.getElementById('view-scores').addEventListener('click', () => {
     // Show scores logic would go here
-    alert(`Current Score: ${gameState.score}`);
+    alert(`Current Score: ${gameState.score}${gameState.playerName ? '\nPlayer: ' + gameState.playerName : ''}`);
     document.querySelector('.parent-dashboard').classList.remove('visible');
   });
   

@@ -492,6 +492,11 @@ h1 {
     background-color: #333;
   }
   
+  /* Override for map-score-display in dark mode */
+  .map-score-display {
+    background-color: #3a1d78; /* Darker purple for dark mode */
+  }
+  
   .score-number, .hint-number, .score-label, .hint-label {
     color: #f5f5f5;
   }

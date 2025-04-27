@@ -71,11 +71,31 @@ export function renderLevelSelect(unlockedLevels, onLevelSelect, score = 0) {
     </div>
   `;
   scoreDisplay.style.margin = '10px 0';
-  scoreDisplay.style.padding = '10px';
-  scoreDisplay.style.backgroundColor = '#f9f9f9';
+  scoreDisplay.style.padding = '15px';
+  scoreDisplay.style.backgroundColor = '#4a2c91'; // Deep purple background
+  scoreDisplay.style.color = 'white'; // White text for contrast
   scoreDisplay.style.borderRadius = '10px';
-  scoreDisplay.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+  scoreDisplay.style.boxShadow = '0 3px 6px rgba(0, 0, 0, 0.2)';
   scoreDisplay.style.display = 'inline-block';
+  scoreDisplay.style.minWidth = '150px';
+  scoreDisplay.style.fontWeight = 'bold';
+  
+  // Style the score number specifically
+  const scoreNumberElement = scoreDisplay.querySelector('.score-number');
+  if (scoreNumberElement) {
+    scoreNumberElement.style.fontSize = '28px';
+    scoreNumberElement.style.fontWeight = 'bold';
+    scoreNumberElement.style.color = '#ffcc00'; // Gold color for better visibility
+    scoreNumberElement.style.marginTop = '5px';
+  }
+  
+  // Style the score label
+  const scoreLabelElement = scoreDisplay.querySelector('.score-label');
+  if (scoreLabelElement) {
+    scoreLabelElement.style.fontSize = '14px';
+    scoreLabelElement.style.color = '#e0e0e0'; // Light gray
+  }
+  
   app.appendChild(scoreDisplay);
   
   // Title
@@ -287,7 +307,7 @@ export function playSound(type) {
         audio.volume = 0.3;
       break;
     case 'hint':
-      audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCgoKCgoKDMzMzMzM0dHR0dHR1VVVVVVVWhoaGhoaHZ2dnZ2doODg4ODg5GRkZGRkZ+fn5+fn6ysrKysrLq6urq6usXFxcXFxdLS0tLS0uDg4ODg4O3t7e3t7f////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAX/+xDEAAPkAGkAbwQAAPqfC+c7YjWAejn1UAAgjfr0AIJDVch0Ff5ID/4bGBv/51xDCCDzKQGQIYaJIlFGjRjwwMYFDAxwMlg8MCDABQbZdABAgwwMDBAIJqLAYcJoJKXjLMAQrewf/+3DE1dSiS1WbeAeJi/lwrv9rJ9zF8FcNUELQKDAxwUMUGBlCMChkYOiZiAYJIAoX7CgvMY4YXdwYHHIq/bmOBMZDLn4a77oYPQ8vRNDYKB8XDJpYQD7yNaORIjAZEwUGAgYYKGDAYVSgYOMBhDQQvAghAQgDAggLBAYb8rUTN/9xzC6B0aDAuY2DIA/8aGRv/8YH/4sVOYRD0ZVgX/IG//iOYVo99DTYx6kGIGJ//7cMTJFVlsYZGcMuY0Y1GBAWYNMf48aGZgM6ZLTRg4OmBzFEwQUDBQZHvDH+GGFgaYVTbgc4bgfIXlj7HAAIkQeGCyYWP5gA3HQYYc/5BSYjAhUqcgg7rkg5gAR6cR+L/Kgxa6P/6DFcwEDCgsMJDIAMMGkgwgquhYJDfGOAYCBhUIGDBwQHqGBQYJBhuAZ8iNgnwsAA5KeDE4REREjiYah5KUHAQYADw4eGpYGIC//uQxKkU40uRkVnYaonwYkHBQRMXBcwaD0RMHg1C6BUcVL6eYKEg4YKCQEIGAQ2I6gEBAwCBEYkFRiASGQhEQqEmgw0LjBQYBQkUFQYHAgkLnRucCAxMBiQMwCgoqLzCg0MJA0BAYQBDIzSBTr//lT/+s/1szndf65ky7/+ZTf/ztXv/9A5v//n7Tqgw4PAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7YMSxlOxCzs1rLADmhCfEEYQAAABWZXKGUxBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+      audio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCgoKCgoKDMzMzMzM0dHR0dHR1VVVVVVVWhoaGhoaHZ2dnZ2doODg4ODg5GRkZGRkZ+fn5+fn6ysrKysrLq6urq6usXFxcXFxdLS0tLS0uDg4ODg4O3t7e3t7f////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAX/+xDEAAPkAGkAbwQAAPqfC+c7YjWAejn1UAAgjfr0AIJDVch0Ff5ID/4bGBv/51xDCCDzKQGQIYaJIlFGjRjwwMYFDAxwMlg8MCDABQbZdABAgwwMDBAIJqLAYcJoJKXjLMAQrewf/+3DE1dSiS1WbeAeJi/lwrv9rJ9zF8FcNUELQKDAxwUMUGBlCMChkYOiZiAYJIAoX7CgvMY4YXdwYHHIq/bmOBMZDLn4a77oYPQ8vRNDYKB8XDJpYQD7yNaORIjAZEwUGAgYYKGDAYVSgYOMBhDQQvAghAQgDAggLBAYb8rUTN/9xzC6B0aDAuY2DIA/8aGRv/8YH/4sVOYRD0ZVgX/IG//iOYVo99DTYx6kGIGJ//7cMTJFVlsYZGcMuY0Y1GBAWYNMf48aGZgM6ZLTRg4OmBzFEwQUDBQZHvDH+GGFgaYVTbgc4bgfIXlj7HAAIkQeGCyYWP5gA3HQYYc/5BSYjAhUqcgg7rkg5gAR6cR+L/Kgxa6P/6DFcwEDCgsMJDIAMMGkgwgquhYJDfGOAYCBhUIGDBwQHqGBQYJBhuAZ8iNgnwsAA5KeDE4REREjiYah5KUHAQYADw4eGpYGIC//uQxKkU40uRkVnYaonwYkHBQRMXBcwaD0RMHg1C6BUcVL6eYKEg4YKCQEIGAQ2I6gEBAwCBEYkFRiASGQhEQqEmgw0LjBQYBQkUFQYHAgkLnRucCAxMBiQMwCgoqLzCg0MJA0BAYQBDIzSBTr//lT/+s/1szndf65ky7/+ZTf/ztXv/9A5v//n7Tqgw4PAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7YMSxlOxCzs1rLADmhCfEEYQAAABWZXKGUxBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
         audio.volume = 0.4;
       break;
     case 'celebration':
