@@ -268,27 +268,35 @@ function populateNumberPicker(numbers) {
 
 // Handle number pick
 export function handleNumberPick(number) {
-  if (!gameState.currentEmptyCell) return;
+  console.log('handleNumberPick called with number:', number);
+  console.log('Current empty cell state:', gameState.currentEmptyCell);
+  
+  if (!gameState.currentEmptyCell) {
+    console.error('handleNumberPick: No current empty cell selected!');
+    return;
+  }
   
   const { row, col, element } = gameState.currentEmptyCell;
   const cell = gameState.board[row][col];
-  
-  // Remove highlight from the cell after picking
-  if (element) {
-    element.classList.remove('selected');
-  }
+  console.log(`Checking cell [${row}, ${col}]. Correct value: ${cell.correctValue}`);
   
   // Close the number picker (without the problematic animation for now)
-  numberPicker.classList.remove('open');
-  /* anime({
-    targets: numberPicker,
-    translateY: ['0%', '100%'],
-    duration: 300,
-    easing: 'easeInCubic'
-  }); */
+  const numberPicker = document.querySelector('.number-picker');
+  if (numberPicker) { // Check if picker exists
+    numberPicker.classList.remove('open');
+    /* anime({
+      targets: numberPicker,
+      translateY: ['0%', '100%'],
+      duration: 300,
+      easing: 'easeInCubic'
+    }); */
+  } else {
+    console.error('Number picker element not found when trying to close!');
+  }
   
   // Check if correct
   if (number === cell.correctValue) {
+    console.log('Correct number picked!');
     // Update board state
     gameState.board[row][col].value = number;
     
@@ -296,6 +304,9 @@ export function handleNumberPick(number) {
     element.textContent = number;
     element.classList.remove('empty');
     element.classList.add('filled');
+    if (element) {
+      element.classList.remove('selected'); // Remove highlight
+    }
     
     // Add score and play sound
     gameState.score += 50;
@@ -312,6 +323,7 @@ export function handleNumberPick(number) {
       handleLevelComplete();
     }
   } else {
+    console.log('Incorrect number picked.');
     // Wrong answer
     element.classList.add('shake');
     setTimeout(() => element.classList.remove('shake'), 500);
@@ -319,6 +331,7 @@ export function handleNumberPick(number) {
   }
   
   // Reset current empty cell
+  console.log('Resetting current empty cell.');
   gameState.currentEmptyCell = null;
 }
 
