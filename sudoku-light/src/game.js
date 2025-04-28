@@ -208,21 +208,103 @@ export function startLevel(levelId, subLevelId) {
   renderGameScreen();
 }
 
+// Helper function to shuffle an array
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Generate a valid Sudoku board
+function generateValidSudokuBoard(board, gridSize, numbers) {
+  const base = Math.sqrt(gridSize);
+  
+  // For non-perfect square grids, use a Latin Square pattern
+  if (!Number.isInteger(base)) {
+    console.warn(`Non-square grid ${gridSize}×${gridSize}; using Latin Square pattern`);
+    for (let r = 0; r < gridSize; r++) {
+      for (let c = 0; c < gridSize; c++) {
+        board[r][c] = numbers[(r + c) % gridSize];
+      }
+    }
+    return;
+  }
+  
+  // For perfect square grids (4x4, 9x9), use the standard Sudoku pattern
+  // This formula ensures every row, column, and block has each number exactly once
+  const pattern = (r, c) => (base * (r % base) + Math.floor(r / base) + c) % gridSize;
+  
+  // Shuffle rows, columns, and symbols for randomization
+  const rows = shuffle([...Array(gridSize).keys()]);
+  const cols = shuffle([...Array(gridSize).keys()]);
+  const symbols = shuffle([...numbers]);
+  
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      board[r][c] = symbols[pattern(rows[r], cols[c])];
+    }
+  }
+}
+
+// Validate that the board follows Sudoku rules
+function validateBoard(board, gridSize, numbers) {
+  const base = Math.sqrt(gridSize);
+  
+  // Check each row
+  for (let i = 0; i < gridSize; i++) {
+    const rowNumbers = new Set();
+    for (let j = 0; j < gridSize; j++) {
+      rowNumbers.add(board[i][j]);
+    }
+    if (rowNumbers.size !== gridSize) {
+      console.error(`Row ${i} has duplicate numbers`);
+      return false;
+    }
+  }
+  
+  // Check each column
+  for (let j = 0; j < gridSize; j++) {
+    const colNumbers = new Set();
+    for (let i = 0; i < gridSize; i++) {
+      colNumbers.add(board[i][j]);
+    }
+    if (colNumbers.size !== gridSize) {
+      console.error(`Column ${j} has duplicate numbers`);
+      return false;
+    }
+  }
+  
+  // For perfect square grids, check each block too
+  if (Number.isInteger(base)) {
+    for (let br = 0; br < base; br++) {
+      for (let bc = 0; bc < base; bc++) {
+        const blockNumbers = new Set();
+        for (let r = 0; r < base; r++) {
+          for (let c = 0; c < base; c++) {
+            blockNumbers.add(board[br * base + r][bc * base + c]);
+          }
+        }
+        if (blockNumbers.size !== gridSize) {
+          console.error(`Block at [${br},${bc}] has duplicate numbers`);
+          return false;
+        }
+      }
+    }
+  }
+  
+  return true;
+}
+
 // Generate board based on level parameters
 function generateBoard(levelData) {
   const { gridSize, hideCount, numbers, patterns, squares } = levelData;
-  const board = [];
   
   console.log('Generating board with parameters:', { gridSize, hideCount, numbers });
   
   // Initialize the board with all empty cells
-  for (let i = 0; i < gridSize; i++) {
-    const row = [];
-    for (let j = 0; j < gridSize; j++) {
-      row.push(null);
-    }
-    board.push(row);
-  }
+  const board = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
   
   // Generate a valid Sudoku board where each row and column contains each number exactly once
   generateValidSudokuBoard(board, gridSize, numbers);
@@ -230,6 +312,11 @@ function generateBoard(levelData) {
   // Verify board validity
   const isValid = validateBoard(board, gridSize, numbers);
   console.log('Board validity check:', isValid);
+  
+  if (!isValid) {
+    console.error('Generated an invalid board, retrying...');
+    return generateBoard(levelData); // Recursive retry
+  }
   
   // Hide some cells
   let hiddenCells = 0;
@@ -285,80 +372,6 @@ function generateBoard(levelData) {
   }
   
   return board;
-}
-
-// Generate a valid Sudoku board
-function generateValidSudokuBoard(board, gridSize, numbers) {
-  // Fill the board with a valid pattern ensuring each row and column has all numbers
-  for (let i = 0; i < gridSize; i++) {
-    for (let j = 0; j < gridSize; j++) {
-      // Use a Latin Square pattern where each row and column contains each number exactly once
-      // This is a simple algorithm that works for any grid size
-      const index = (i + j) % gridSize;
-      board[i][j] = numbers[index];
-    }
-  }
-  
-  // Optional: Shuffle the board a bit to make it more random
-  shuffleBoard(board, gridSize);
-}
-
-// Shuffle the board to make it more random while preserving Sudoku constraints
-function shuffleBoard(board, gridSize) {
-  // Swap some rows within the same block
-  for (let i = 0; i < 3; i++) {
-    const row1 = Math.floor(Math.random() * gridSize);
-    const row2 = Math.floor(Math.random() * gridSize);
-    
-    // Only swap if they're in the same block (for standard Sudoku rules)
-    if (row1 !== row2 && Math.floor(row1 / Math.sqrt(gridSize)) === Math.floor(row2 / Math.sqrt(gridSize))) {
-      // Swap rows
-      [board[row1], board[row2]] = [board[row2], board[row1]];
-    }
-  }
-  
-  // Swap some columns within the same block
-  for (let i = 0; i < 3; i++) {
-    const col1 = Math.floor(Math.random() * gridSize);
-    const col2 = Math.floor(Math.random() * gridSize);
-    
-    // Only swap if they're in the same block (for standard Sudoku rules)
-    if (col1 !== col2 && Math.floor(col1 / Math.sqrt(gridSize)) === Math.floor(col2 / Math.sqrt(gridSize))) {
-      // Swap columns
-      for (let row = 0; row < gridSize; row++) {
-        [board[row][col1], board[row][col2]] = [board[row][col2], board[row][col1]];
-      }
-    }
-  }
-}
-
-// Validate that the board follows Sudoku rules
-function validateBoard(board, gridSize, numbers) {
-  // Check each row
-  for (let i = 0; i < gridSize; i++) {
-    const rowNumbers = new Set();
-    for (let j = 0; j < gridSize; j++) {
-      rowNumbers.add(board[i][j]);
-    }
-    if (rowNumbers.size !== gridSize) {
-      console.error(`Row ${i} has duplicate numbers`);
-      return false;
-    }
-  }
-  
-  // Check each column
-  for (let j = 0; j < gridSize; j++) {
-    const colNumbers = new Set();
-    for (let i = 0; i < gridSize; i++) {
-      colNumbers.add(board[i][j]);
-    }
-    if (colNumbers.size !== gridSize) {
-      console.error(`Column ${j} has duplicate numbers`);
-      return false;
-    }
-  }
-  
-  return true;
 }
 
 // Render game screen
@@ -862,6 +875,9 @@ function setupParentDashboard() {
 // Helper function to speak text using Web Speech API
 function speakText(text) {
   if ('speechSynthesis' in window) {
+    // Cancel any ongoing speech to prevent overlapping
+    speechSynthesis.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9; // Slightly slower for children
     utterance.pitch = 1.2; // Slightly higher pitch
