@@ -77,10 +77,10 @@ const levels = [
   {
     id: 6,
     name: "Shooting Star",
-    description: "Learning about numbers 5 and 6!",
+    description: "Learning about numbers 5 and 6 with 3x3 square restrictions!",
     subLevels: [
-      { gridSize: 6, hideCount: 2, patterns: ["row", "col"], numbers: [1, 2, 3, 4, 5, 6], squares: false, crossword: false },
-      { gridSize: 6, hideCount: 3, patterns: ["row", "col"], numbers: [1, 2, 3, 4, 5, 6], squares: false, crossword: false },
+      { gridSize: 6, hideCount: 2, patterns: ["row", "col"], numbers: [1, 2, 3, 4, 5, 6], squares: true, crossword: false },
+      { gridSize: 6, hideCount: 3, patterns: ["row", "col"], numbers: [1, 2, 3, 4, 5, 6], squares: true, crossword: false },
       { gridSize: 6, hideCount: 4, patterns: ["row", "col"], numbers: [1, 2, 3, 4, 5, 6], squares: true, crossword: false }
     ]
   },

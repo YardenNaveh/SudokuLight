@@ -6,10 +6,40 @@ export function renderBoard(boardData, onCellTap) {
   const boardElement = document.createElement('div');
   boardElement.className = `board size-${boardData.length}`;
   
+  // Get current level data to check if squares are enabled
+  const levelData = window.currentLevelData; // This will be set in game.js before rendering
+  const squaresEnabled = levelData && levelData.squares;
+  
+  // Determine square size based on grid size
+  const gridSize = boardData.length;
+  const squareSize = Number.isInteger(Math.sqrt(gridSize)) ? Math.sqrt(gridSize) : 
+                    (gridSize === 6 ? 3 : // Special case for 6x6 grid (3x2 squares)
+                    gridSize === 8 ? 4 : 2); // Default to 2 for other sizes
+  
+  // Add a class to the board if squares are enabled
+  if (squaresEnabled) {
+    boardElement.classList.add('squares-enabled');
+  }
+  
   for (let i = 0; i < boardData.length; i++) {
     for (let j = 0; j < boardData[i].length; j++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
+      
+      // Add square region classes only if squares are enabled
+      if (squaresEnabled) {
+        const squareRow = Math.floor(i / squareSize);
+        const squareCol = Math.floor(j / squareSize);
+        cell.classList.add(`square-${squareRow}-${squareCol}`);
+        
+        // Add border classes based on position in square
+        if (j % squareSize === 0 && j > 0) {
+          cell.classList.add('left-border');
+        }
+        if (i % squareSize === 0 && i > 0) {
+          cell.classList.add('top-border');
+        }
+      }
       
       const cellData = boardData[i][j];
       
@@ -197,7 +227,7 @@ export function showCelebration(stars, playerName = '') {
   starsContainer.style.alignItems = 'center';
   starsContainer.style.justifyContent = 'center';
   starsContainer.style.gap = '15px';
-  starsContainer.style.zIndex = '2000';
+  starsContainer.style.zIndex = '1000'; // Lower z-index so it doesn't block buttons
   // Stars should be visible but not interfere with interactions
   starsContainer.style.pointerEvents = 'none';
   
@@ -240,6 +270,19 @@ export function showCelebration(stars, playerName = '') {
   
   celebrations.appendChild(starsContainer);
   
+  // Ensure Next Riddle button is accessible by explicitly checking and setting it to enabled
+  setTimeout(() => {
+    const nextButton = document.getElementById('next-riddle-btn');
+    if (nextButton) {
+      nextButton.disabled = false;
+      nextButton.classList.add('enabled');
+      // Ensure the button is above celebrations
+      nextButton.style.zIndex = '3000';
+      // Make sure it's clickable
+      nextButton.style.pointerEvents = 'auto';
+    }
+  }, 100); // Small delay to ensure DOM is updated
+  
   // Create a dedicated container for confetti to ensure they don't block interactions
   const confettiContainer = document.createElement('div');
   confettiContainer.className = 'confetti-container';
@@ -249,7 +292,7 @@ export function showCelebration(stars, playerName = '') {
   confettiContainer.style.width = '100%';
   confettiContainer.style.height = '100%';
   confettiContainer.style.pointerEvents = 'none'; // Ensure confetti doesn't block interactions
-  confettiContainer.style.zIndex = '1500';
+  confettiContainer.style.zIndex = '500'; // Lower z-index to keep below UI elements
   celebrations.appendChild(confettiContainer);
   
   // Play celebration sound immediately
@@ -329,4 +372,214 @@ export function playSound(type) {
   // Cache and play the audio
   audioCache[type] = audio;
   audio.play().catch(e => console.log('Audio playback prevented: ', e));
+}
+
+// Create and initialize game controls and UI elements
+export function initializeGameUI() {
+  console.log('Initializing game UI');
+  
+  // Create score and level display banner  
+  const scoreBanner = document.createElement('div');
+  scoreBanner.className = 'score-banner';
+  
+  const scoreNumber = document.createElement('div');
+  scoreNumber.className = 'score-number';
+  scoreNumber.textContent = '0';
+  
+  const levelDisplay = document.createElement('div');
+  levelDisplay.className = 'level-display';
+  levelDisplay.textContent = 'Planet 1 - Riddle 1';
+  
+  const streakDisplay = document.createElement('div');
+  streakDisplay.className = 'streak-display';
+  streakDisplay.innerHTML = 'Streak: <span class="streak-number">0/5</span>';
+  
+  scoreBanner.appendChild(levelDisplay);
+  scoreBanner.appendChild(scoreNumber);
+  scoreBanner.appendChild(streakDisplay);
+  document.getElementById('game-container').appendChild(scoreBanner);
+  
+  // Create bottom controls
+  createBottomControls();
+}
+
+// Function to create a toast notification
+export function showToast(message, duration = 3000) {
+  // Check if toast already exists, remove it to avoid stacking
+  const existingToast = document.querySelector('.toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  // Create new toast
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  // Show the toast with an animation
+  setTimeout(() => toast.classList.add('visible'), 10);
+
+  // Hide and remove after duration
+  setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300); // Remove after fade animation
+  }, duration);
+}
+
+export function addStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    :root {
+      --primary-color: #4a90e2;
+      --secondary-color: #f5a623;
+      --success-color: #7ed321;
+      --error-color: #d0021b;
+      --bg-color: #f0f4f8;
+      --text-color: #333;
+      --board-border-color: #bbb;
+      --cell-border-color: #ddd;
+      --cell-selected-color: #e3f2fd;
+      --cell-highlight-color: #f0f7ff;
+      --cell-correct-color: #eaffea;
+      --cell-incorrect-color: #ffeeee;
+      --main-font: 'Roboto', sans-serif;
+    }
+
+    body {
+      font-family: var(--main-font);
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overscroll-behavior: none; /* Prevents pull-to-refresh on mobile */
+    }
+
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 auto;
+      max-width: 600px;
+      width: 95%;
+      padding: 10px;
+      position: relative;
+    }
+
+    .score-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .level-display {
+      font-weight: bold;
+      font-size: 16px;
+      color: var(--primary-color);
+    }
+
+    .score-number {
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--secondary-color);
+    }
+    
+    .streak-display {
+      font-size: 16px;
+      color: var(--text-color);
+    }
+    
+    .streak-number {
+      font-weight: bold;
+    }
+    
+    .streak-active {
+      color: var(--success-color);
+    }
+
+    /* Bottom Controls */
+    .bottom-controls {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      margin-top: 15px;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .control-button {
+      padding: 10px 15px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .control-button:hover {
+      background-color: #3a80d2;
+    }
+
+    .control-button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      z-index: 1000;
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      text-align: center;
+      max-width: 80%;
+    }
+    
+    .toast.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Media Queries for responsiveness */
+    @media (max-width: 480px) {
+      #game-container {
+        width: 100%;
+        padding: 5px;
+      }
+      
+      .score-banner,
+      .bottom-controls {
+        padding: 8px;
+      }
+      
+      .control-button {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
 } 

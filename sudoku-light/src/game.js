@@ -12,37 +12,49 @@ let gameState = {
   unlockedLevels: [1],
   levelStars: {},
   playerName: '',
+  consecutiveCorrect: 0,  // Track consecutive correct solutions
+  squareOptions: [],      // Track available options for each square
 };
 
 // Initialize game
 export function initGame() {
-  loadProgress();
+  // Create initial game state if needed
+  gameState = {
+    currentLevel: 1,
+    currentSubLevel: 1,
+    score: 0,
+    hintsLeft: 3,
+    board: [],
+    currentEmptyCell: null,
+    unlockedLevels: [1],
+    levelStars: {},
+    playerName: '',
+    consecutiveCorrect: 0,
+    squareOptions: []
+  };
   
-  // Show splash screen initially
+  // Try to load saved progress
+  try {
+    loadProgress();
+  } catch (e) {
+    console.error('Failed to load progress:', e);
+  }
+  
+  // Create simple splash screen
   const app = document.getElementById('app');
   app.innerHTML = `
-    <div class="splash-screen">
-      <div class="splash-mascot">🚀</div>
-      <div class="splash-logo">Sudoku Buddies</div>
-      <div class="splash-tap">Tap anywhere to start</div>
+    <div class="splash-screen" style="cursor: pointer; text-align: center; padding: 20px;">
+      <div class="splash-mascot" style="font-size: 64px; margin-bottom: 20px;">🚀</div>
+      <div class="splash-logo" style="font-size: 2.5em; font-weight: bold; margin-bottom: 30px; color: #6200ee;">Sudoku Buddies</div>
+      <button id="start-button" style="font-size: 1.2em; padding: 10px 20px; background-color: #6200ee; color: white; border: none; border-radius: 8px; cursor: pointer;">Tap to Start</button>
     </div>
   `;
   
-  // Add event listener to splash screen
-  document.querySelector('.splash-screen').addEventListener('click', () => {
-    document.querySelector('.splash-screen').style.display = 'none';
-    
-    // Skip name input if player name already exists
-    if (gameState.playerName) {
-      console.log(`Player name already exists: ${gameState.playerName}. Skipping name input.`);
-      showLevelSelect();
-    } else {
-      showNameInput();
-    }
-  });
-  
-  // Set up parent dashboard (hidden behind long press)
-  setupParentDashboard();
+  // Use a simple button with a direct click handler
+  document.getElementById('start-button').onclick = function() {
+    // Go to level select screen to avoid any issues
+    showLevelSelect();
+  };
 }
 
 // Show name input screen
@@ -118,7 +130,8 @@ function handleNameSubmit() {
     saveProgress();
   }
   
-  showLevelSelect();
+  // Go directly to level 1 instead of the map
+  startLevel(1, 1);
 }
 
 // Load progress from localStorage
@@ -134,6 +147,8 @@ function loadProgress() {
       gameState.unlockedLevels = parsedState.unlockedLevels || [1];
       gameState.levelStars = parsedState.levelStars || {};
       gameState.playerName = parsedState.playerName || '';
+      gameState.consecutiveCorrect = parsedState.consecutiveCorrect || 0;
+      gameState.squareOptions = parsedState.squareOptions || [];
       console.log('Applied loaded state to gameState.');
     } catch (e) {
       console.error('Failed to parse saved state:', e);
@@ -153,7 +168,9 @@ export function saveProgress() {
       score: gameState.score,
       unlockedLevels: gameState.unlockedLevels,
       levelStars: gameState.levelStars,
-      playerName: gameState.playerName
+      playerName: gameState.playerName,
+      consecutiveCorrect: gameState.consecutiveCorrect,
+      squareOptions: gameState.squareOptions
     };
     localStorage.setItem('sudokuLightState', JSON.stringify(stateToSave));
     console.log('Progress saved:', stateToSave);
@@ -176,6 +193,8 @@ export function resetProgress() {
     unlockedLevels: [1],
     levelStars: {},
     playerName: '',
+    consecutiveCorrect: 0,
+    squareOptions: [],
   };
   console.log('GameState reset.');
   showLevelSelect();
@@ -196,16 +215,134 @@ function showSubLevelSelect(level) {
   startLevel(level, 1);
 }
 
-// Start a level
+// Start a level with given parameters
 export function startLevel(levelId, subLevelId) {
-  gameState.currentLevel = levelId;
-  gameState.currentSubLevel = subLevelId;
-  gameState.hintsLeft = 3;
+  console.log(`Starting level ${levelId}-${subLevelId}`);
   
-  const levelData = getLevelData(levelId, subLevelId);
-  gameState.board = generateBoard(levelData);
-  
-  renderGameScreen();
+  try {
+    // Load level data
+    const levelData = getLevelData(levelId, subLevelId);
+    console.log('Level data:', levelData);
+    
+    // Store current level data in window object for UI access
+    window.currentLevelData = levelData;
+    
+    // Initialize game state
+    gameState.currentLevel = levelId;
+    gameState.currentSubLevel = subLevelId;
+    gameState.score = gameState.score || 0;
+    gameState.consecutiveCorrect = gameState.consecutiveCorrect || 0;
+    gameState.hintsLeft = 3; // Reset hints for each level
+    
+    // Special handling for level 6 (6x6 grids)
+    if (levelId === 6) {
+      console.log('Using special handling for Level 6 (6x6 grid)');
+      try {
+        // Generate board with timeout and error handling
+        const generateBoardWithTimeout = () => {
+          try {
+            return generateBoard(levelData);
+          } catch (e) {
+            console.error('Error generating Level 6 board:', e);
+            
+            // Create a simple 6x6 board as fallback
+            const fallbackBoard = Array.from({ length: 6 }, () => Array(6).fill(null));
+            for (let i = 0; i < 6; i++) {
+              for (let j = 0; j < 6; j++) {
+                // Fill with correct values first
+                fallbackBoard[i][j] = levelData.numbers[(i + j) % 6];
+              }
+            }
+            
+            // Hide some cells based on hideCount
+            let hiddenCount = 0;
+            while (hiddenCount < levelData.hideCount) {
+              const i = Math.floor(Math.random() * 6);
+              const j = Math.floor(Math.random() * 6);
+              
+              if (typeof fallbackBoard[i][j] !== 'object') {
+                const correctValue = fallbackBoard[i][j];
+                fallbackBoard[i][j] = { value: null, correctValue: correctValue };
+                hiddenCount++;
+              }
+            }
+            
+            return fallbackBoard;
+          }
+        };
+        
+        // Try to generate the board with a timeout
+        const boardPromise = new Promise((resolve) => {
+          const board = generateBoardWithTimeout();
+          resolve(board);
+        });
+        
+        // Set a timeout to ensure we don't block too long
+        const timeoutPromise = new Promise((resolve) => {
+          setTimeout(() => {
+            console.warn('Board generation timed out, using fallback');
+            
+            // Create a simple Latin Square pattern as fallback
+            const fallbackBoard = Array.from({ length: 6 }, () => Array(6).fill(null));
+            for (let i = 0; i < 6; i++) {
+              for (let j = 0; j < 6; j++) {
+                // Fill with Latin square pattern
+                if (Math.random() < 0.7) { // 70% of cells filled
+                  fallbackBoard[i][j] = levelData.numbers[(i + j) % 6];
+                } else {
+                  // Hide some cells
+                  const correctValue = levelData.numbers[(i + j) % 6];
+                  fallbackBoard[i][j] = { value: null, correctValue: correctValue };
+                }
+              }
+            }
+            
+            resolve(fallbackBoard);
+          }, 2000); // 2 second timeout
+        });
+        
+        // Use the first result that completes
+        Promise.race([boardPromise, timeoutPromise])
+          .then(board => {
+            gameState.board = board;
+            renderGameScreen();
+          })
+          .catch(e => {
+            console.error('Error in board generation promises:', e);
+            // Final fallback
+            const simpleBoard = Array.from({ length: 6 }, (_, i) => 
+              Array.from({ length: 6 }, (_, j) => 
+                (Math.random() < 0.7) ? 
+                  levelData.numbers[(i + j) % 6] : 
+                  { value: null, correctValue: levelData.numbers[(i + j) % 6] }
+              )
+            );
+            gameState.board = simpleBoard;
+            renderGameScreen();
+          });
+          
+        return; // Early return to avoid normal flow
+      } catch (e) {
+        console.error('Critical error in Level 6 special handling:', e);
+        // Continue to normal flow as fallback
+      }
+    }
+    
+    // Normal flow for other levels
+    try {
+      // Generate board based on level parameters
+      gameState.board = generateBoard(levelData);
+      renderGameScreen();
+    } catch (e) {
+      console.error('Error generating board:', e);
+      showToast('Error loading level. Returning to level select...');
+      setTimeout(() => showLevelSelect(), 2000);
+    }
+  } catch (e) {
+    console.error('Error starting level:', e);
+    showToast('Error loading level. Returning to level select...');
+    setTimeout(() => showLevelSelect(), 2000);
+  }
 }
 
 // Helper function to shuffle an array
@@ -220,81 +357,278 @@ function shuffle(array) {
 // Generate a valid Sudoku board
 function generateValidSudokuBoard(board, gridSize, numbers) {
   const base = Math.sqrt(gridSize);
+  const isSquareGrid = Number.isInteger(base);
   
-  // For non-perfect square grids, use a Latin Square pattern
-  if (!Number.isInteger(base)) {
-    console.warn(`Non-square grid ${gridSize}×${gridSize}; using Latin Square pattern`);
+  // Check if squares are enabled for this level
+  const squaresEnabled = window.currentLevelData && window.currentLevelData.squares;
+  
+  // Special case for 6x6 grid with 3x3 square constraints, but only if squares are enabled
+  if (gridSize === 6 && squaresEnabled) {
+    generateValid6x6Board(board, numbers);
+    return;
+  }
+  
+  // For perfect square grids (4x4, 9x9) with squares enabled, use the standard Sudoku pattern
+  if (isSquareGrid && squaresEnabled) {
+    // This formula ensures every row, column, and block has each number exactly once
+    const pattern = (r, c) => (base * (r % base) + Math.floor(r / base) + c) % gridSize;
+    
+    // Shuffle rows, columns, and symbols for randomization
+    const rows = shuffle([...Array(gridSize).keys()]);
+    const cols = shuffle([...Array(gridSize).keys()]);
+    const symbols = shuffle([...numbers]);
+    
     for (let r = 0; r < gridSize; r++) {
       for (let c = 0; c < gridSize; c++) {
-        board[r][c] = numbers[(r + c) % gridSize];
+        board[r][c] = symbols[pattern(rows[r], cols[c])];
       }
     }
     return;
   }
   
-  // For perfect square grids (4x4, 9x9), use the standard Sudoku pattern
-  // This formula ensures every row, column, and block has each number exactly once
-  const pattern = (r, c) => (base * (r % base) + Math.floor(r / base) + c) % gridSize;
-  
-  // Shuffle rows, columns, and symbols for randomization
-  const rows = shuffle([...Array(gridSize).keys()]);
-  const cols = shuffle([...Array(gridSize).keys()]);
-  const symbols = shuffle([...numbers]);
-  
+  // For non-square grids or when squares aren't enabled, use a Latin Square pattern
+  console.warn(`Using Latin Square pattern for ${gridSize}×${gridSize} grid`);
   for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
-      board[r][c] = symbols[pattern(rows[r], cols[c])];
+      board[r][c] = numbers[(r + c) % gridSize];
     }
   }
 }
 
-// Validate that the board follows Sudoku rules
-function validateBoard(board, gridSize, numbers) {
-  const base = Math.sqrt(gridSize);
+// Special function to generate valid 6x6 Sudoku with 3x3 square constraints
+function generateValid6x6Board(board, numbers) {
+  console.log('Starting 6x6 board generation with numbers:', numbers);
   
-  // Check each row
-  for (let i = 0; i < gridSize; i++) {
-    const rowNumbers = new Set();
-    for (let j = 0; j < gridSize; j++) {
-      rowNumbers.add(board[i][j]);
+  // Max attempts to generate a valid board using backtracking
+  const MAX_ATTEMPTS = 5;
+  let attempt = 0;
+  let success = false;
+
+  while (attempt < MAX_ATTEMPTS && !success) {
+    attempt++;
+    console.log(`Generation attempt ${attempt}/${MAX_ATTEMPTS}`);
+    
+    // Initialize board with nulls for each attempt
+    for (let i = 0; i < 6; i++) {
+      for (let j = 0; j < 6; j++) {
+        board[i][j] = null;
+      }
     }
-    if (rowNumbers.size !== gridSize) {
-      console.error(`Row ${i} has duplicate numbers`);
+
+    // Try to solve using backtracking
+    success = solve(0, 0);
+    
+    // If solved, validate the board immediately
+    if (success) {
+      try {
+        const isValid = validateBoard(board, 6, numbers);
+        if (!isValid) {
+          console.error(`Generated 6x6 board failed validation on attempt ${attempt}`);
+          success = false; // Mark as failed to retry
+        }
+      } catch (e) {
+        console.error(`Error validating generated 6x6 board: ${e.message}`);
+        success = false; // Mark as failed to retry
+      }
+    }
+  }
+
+  // Backtracking algorithm (nested function)
+  function solve(row, col) {
+    // Base case: Board is filled
+    if (row >= 6) {
+      return true;
+    }
+
+    // Calculate next cell
+    const nextRow = col === 5 ? row + 1 : row;
+    const nextCol = col === 5 ? 0 : col + 1;
+
+    // If cell is already filled (shouldn't happen with current init, but good practice)
+    if (board[row][col] !== null) {
+      return solve(nextRow, nextCol);
+    }
+
+    // Try numbers in shuffled order
+    const shuffledNumbers = shuffle([...numbers]);
+    for (const num of shuffledNumbers) {
+      if (isValid6x6Move(board, row, col, num)) {
+        board[row][col] = num;
+        if (solve(nextRow, nextCol)) {
+          return true; // Solution found
+        }
+        board[row][col] = null; // Backtrack
+      }
+    }
+
+    return false; // No valid number found for this cell
+  }
+
+  // If all attempts failed, use a fallback pattern
+  if (!success) {
+    console.warn(`All ${MAX_ATTEMPTS} attempts to generate a valid 6x6 board failed. Using fallback Latin Square pattern.`);
+    for (let r = 0; r < 6; r++) {
+      for (let c = 0; c < 6; c++) {
+        board[r][c] = numbers[(r + c) % 6];
+      }
+    }
+  }
+  
+  console.log('Completed 6x6 board generation');
+}
+
+// Check if a move is valid in a 6x6 grid with 3x3 square constraints
+function isValid6x6Move(board, row, col, num) {
+  // Check row
+  for (let j = 0; j < 6; j++) {
+    // Check only filled cells, ignore the current cell if it's being checked
+    if (j !== col && board[row][j] === num) {
       return false;
     }
   }
   
-  // Check each column
-  for (let j = 0; j < gridSize; j++) {
-    const colNumbers = new Set();
-    for (let i = 0; i < gridSize; i++) {
-      colNumbers.add(board[i][j]);
-    }
-    if (colNumbers.size !== gridSize) {
-      console.error(`Column ${j} has duplicate numbers`);
+  // Check column
+  for (let i = 0; i < 6; i++) {
+    // Check only filled cells, ignore the current cell if it's being checked
+    if (i !== row && board[i][col] === num) {
       return false;
     }
   }
   
-  // For perfect square grids, check each block too
-  if (Number.isInteger(base)) {
-    for (let br = 0; br < base; br++) {
-      for (let bc = 0; bc < base; bc++) {
-        const blockNumbers = new Set();
-        for (let r = 0; r < base; r++) {
-          for (let c = 0; c < base; c++) {
-            blockNumbers.add(board[br * base + r][bc * base + c]);
-          }
-        }
-        if (blockNumbers.size !== gridSize) {
-          console.error(`Block at [${br},${bc}] has duplicate numbers`);
-          return false;
-        }
+  // Check 3x3 square
+  const squareRowStart = Math.floor(row / 3) * 3;
+  const squareColStart = Math.floor(col / 3) * 3;
+  
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      const checkRow = squareRowStart + i;
+      const checkCol = squareColStart + j;
+      // Check only filled cells within the square, ignore the current cell
+      if ((checkRow !== row || checkCol !== col) && board[checkRow][checkCol] === num) {
+        return false;
       }
     }
   }
   
   return true;
+}
+
+// Validate that the board follows Sudoku rules
+function validateBoard(board, gridSize, numbers) {
+  try {
+    const base = Math.sqrt(gridSize);
+    const isSquareGrid = Number.isInteger(base);
+    
+    // Check if squares are enabled for this level
+    const squaresEnabled = window.currentLevelData && window.currentLevelData.squares;
+    
+    // Safety check for invalid board
+    if (!board || !Array.isArray(board) || board.length !== gridSize) {
+      console.error('Invalid board structure in validateBoard');
+      return false;
+    }
+    
+    // Check each row
+    for (let i = 0; i < gridSize; i++) {
+      if (!board[i] || !Array.isArray(board[i]) || board[i].length !== gridSize) {
+        console.error(`Row ${i} is not properly initialized`);
+        return false;
+      }
+      
+      const rowNumbers = new Set();
+      for (let j = 0; j < gridSize; j++) {
+        if (board[i][j] === null || board[i][j] === undefined) {
+          console.error(`Cell at [${i},${j}] is null or undefined`);
+          return false;
+        }
+        rowNumbers.add(board[i][j]);
+      }
+      if (rowNumbers.size !== gridSize) {
+        console.error(`Row ${i} has duplicate numbers`);
+        return false;
+      }
+    }
+    
+    // Check each column
+    for (let j = 0; j < gridSize; j++) {
+      const colNumbers = new Set();
+      for (let i = 0; i < gridSize; i++) {
+        colNumbers.add(board[i][j]);
+      }
+      if (colNumbers.size !== gridSize) {
+        console.error(`Column ${j} has duplicate numbers`);
+        return false;
+      }
+    }
+    
+    // Only check blocks if squares are enabled for this level
+    if (!squaresEnabled) {
+      return true; // Skip block validation if squares are not enabled
+    }
+    
+    // For perfect square grids, check each block too
+    if (isSquareGrid) {
+      for (let br = 0; br < base; br++) {
+        for (let bc = 0; bc < base; bc++) {
+          const blockNumbers = new Set();
+          for (let r = 0; r < base; r++) {
+            for (let c = 0; c < base; c++) {
+              blockNumbers.add(board[br * base + r][bc * base + c]);
+            }
+          }
+          if (blockNumbers.size !== gridSize) {
+            console.error(`Block at [${br},${bc}] has duplicate numbers`);
+            return false;
+          }
+        }
+      }
+    }
+    // Special case for 6x6 grid - check 3x3 squares (2 columns, 2 rows of squares)
+    else if (gridSize === 6) {
+      try {
+        const blockSize = 3; // 3x3 blocks in a 6x6 grid
+        
+        // Check each 3x3 block
+        for (let br = 0; br < 2; br++) { // 2 rows of blocks
+          for (let bc = 0; bc < 2; bc++) { // 2 columns of blocks
+            try {
+              const blockNumbers = new Set();
+              let count = 0;
+              for (let r = 0; r < blockSize; r++) {
+                for (let c = 0; c < blockSize; c++) {
+                  const cellValue = board[br * blockSize + r][bc * blockSize + c];
+                  if (cellValue === null || cellValue === undefined) {
+                    console.error(`Cell at block [${br},${bc}], position [${r},${c}] is null or undefined during validation`);
+                    // Allow validation to continue if cell is null, as it might be an empty cell to be filled
+                    continue;
+                  }
+                  blockNumbers.add(cellValue);
+                  count++;
+                }
+              }
+              
+              // Check if the number of unique values matches the number of filled cells in the block
+              if (blockNumbers.size !== count) {
+                console.error(`Block at [${br},${bc}] has duplicate numbers among filled cells.`);
+                return false;
+              }
+            } catch (e) {
+              console.error(`Error checking block [${br},${bc}]: ${e.message}`);
+              return false;
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`Error in 6x6 block validation: ${e.message}`);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (e) {
+    console.error(`Global error in validateBoard: ${e.message}`);
+    return false;
+  }
 }
 
 // Generate board based on level parameters
@@ -305,6 +639,11 @@ function generateBoard(levelData) {
   
   // Initialize the board with all empty cells
   const board = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
+  
+  // Initialize squareOptions to track available options for each cell
+  gameState.squareOptions = Array.from({ length: gridSize }, () => 
+    Array.from({ length: gridSize }, () => [...numbers])
+  );
   
   // Generate a valid Sudoku board where each row and column contains each number exactly once
   generateValidSudokuBoard(board, gridSize, numbers);
@@ -382,6 +721,15 @@ function renderGameScreen() {
   const container = document.createElement('div');
   container.className = 'container';
   
+  // Level info
+  const levelInfo = document.createElement('div');
+  levelInfo.className = 'level-info';
+  levelInfo.innerHTML = `<span>Planet ${gameState.currentLevel}</span> · <span>Riddle ${gameState.currentSubLevel}</span>`;
+  levelInfo.style.margin = '10px 0';
+  levelInfo.style.fontWeight = 'bold';
+  levelInfo.style.color = '#4a2c91';
+  container.appendChild(levelInfo);
+  
   // Score banner
   const scoreBanner = document.createElement('div');
   scoreBanner.className = 'score-banner';
@@ -393,6 +741,10 @@ function renderGameScreen() {
     <div class="hint-count">
       <div class="hint-label">Hints</div>
       <div class="hint-number">${gameState.hintsLeft}</div>
+    </div>
+    <div class="streak-count">
+      <div class="streak-label">Streak</div>
+      <div class="streak-number">${gameState.consecutiveCorrect}/5</div>
     </div>
   `;
   container.appendChild(scoreBanner);
@@ -457,11 +809,13 @@ export function handleCellTap(cellElement, rowIndex, colIndex) {
   console.log('Cell tapped:', rowIndex, colIndex);
   const cell = gameState.board[rowIndex][colIndex];
   
-  // Remove highlight from previously selected cell
+  // Remove highlight from previously selected cell and threatening cells
   const previouslySelected = document.querySelector('.cell.selected');
   if (previouslySelected) {
     previouslySelected.classList.remove('selected');
   }
+  const threateningCells = document.querySelectorAll('.cell.threatening');
+  threateningCells.forEach(cell => cell.classList.remove('threatening'));
   
   // Only handle empty cells
   if (cell && cell.value === null) {
@@ -470,6 +824,9 @@ export function handleCellTap(cellElement, rowIndex, colIndex) {
     
     // Highlight the selected cell
     cellElement.classList.add('selected');
+    
+    // Highlight threatening cells (same row, column, and block)
+    highlightThreateningCells(rowIndex, colIndex);
     
     // Get the level data to know which numbers to show
     const levelData = getLevelData(gameState.currentLevel, gameState.currentSubLevel);
@@ -484,17 +841,81 @@ export function handleCellTap(cellElement, rowIndex, colIndex) {
     
     // Show the number picker (without the problematic animation for now)
     numberPicker.classList.add('open');
-    /* anime({
-      targets: numberPicker,
-      translateY: ['100%', '0%'],
-      duration: 300,
-      easing: 'easeOutCubic'
-    }); */
     
     // Populate number picker with correct options
-    populateNumberPicker(levelData.numbers);
+    populateNumberPicker(gameState.squareOptions[rowIndex][colIndex] || levelData.numbers);
   } else {
     console.log('Cell not empty or invalid.');
+  }
+}
+
+// Highlight cells that share the same row, column, or block as the selected cell
+function highlightThreateningCells(rowIndex, colIndex) {
+  const gridSize = gameState.board.length;
+  const base = Math.sqrt(gridSize);
+  const isSquareGrid = Number.isInteger(base);
+  
+  // Check if square restrictions are enabled for this level
+  const squaresEnabled = window.currentLevelData && window.currentLevelData.squares;
+  
+  // Get all cells
+  const cells = document.querySelectorAll('.cell');
+  
+  // Highlight cells in the same row
+  for (let j = 0; j < gridSize; j++) {
+    if (j !== colIndex) {
+      const cellIndex = rowIndex * gridSize + j;
+      cells[cellIndex].classList.add('threatening');
+    }
+  }
+  
+  // Highlight cells in the same column
+  for (let i = 0; i < gridSize; i++) {
+    if (i !== rowIndex) {
+      const cellIndex = i * gridSize + colIndex;
+      cells[cellIndex].classList.add('threatening');
+    }
+  }
+  
+  // Only highlight cells in the same block if square restrictions are enabled
+  if (!squaresEnabled) {
+    return; // Skip block highlighting if squares are not enabled
+  }
+  
+  // For perfect square grids (4x4, 9x9), highlight cells in the same block
+  if (isSquareGrid) {
+    const blockRowStart = Math.floor(rowIndex / base) * base;
+    const blockColStart = Math.floor(colIndex / base) * base;
+    
+    for (let i = 0; i < base; i++) {
+      for (let j = 0; j < base; j++) {
+        const r = blockRowStart + i;
+        const c = blockColStart + j;
+        if (r !== rowIndex || c !== colIndex) {
+          const cellIndex = r * gridSize + c;
+          cells[cellIndex].classList.add('threatening');
+        }
+      }
+    }
+  } 
+  // Special case for 6x6 grid - use 3x2 regions (3 rows, 2 columns of 3x3 squares)
+  else if (gridSize === 6) {
+    // Determine which 3x3 square the cell is in
+    const blockRowStart = Math.floor(rowIndex / 3) * 3; // 3x3 square rows
+    const blockColStart = Math.floor(colIndex / 3) * 3; // 3x3 square columns
+    
+    // Highlight cells in the same 3x3 block
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const r = blockRowStart + i;
+        const c = blockColStart + j;
+        // Make sure we don't go out of bounds
+        if (r < gridSize && c < gridSize && (r !== rowIndex || c !== colIndex)) {
+          const cellIndex = r * gridSize + c;
+          cells[cellIndex].classList.add('threatening');
+        }
+      }
+    }
   }
 }
 
@@ -562,8 +983,15 @@ export function handleNumberPick(number) {
     element.classList.add('filled');
     element.classList.add('filled-correctly'); // Add animation class
     if (element) {
-      element.classList.remove('selected'); // Remove highlight
+      element.classList.remove('selected');
+      element.classList.remove('threatening'); // Remove threatening highlight
     }
+    
+    // Remove threatening highlights from all cells
+    document.querySelectorAll('.cell.threatening').forEach(cell => {
+      cell.classList.remove('threatening');
+    });
+    
     // Remove animation class after it finishes
     setTimeout(() => element.classList.remove('filled-correctly'), 400);
     
@@ -583,6 +1011,25 @@ export function handleNumberPick(number) {
     // Check if level complete
     console.log('Checking if level complete...');
     if (checkLevelComplete()) {
+      // Only increment streak counter when the entire riddle is solved
+      gameState.consecutiveCorrect++;
+      console.log(`Consecutive correct answers: ${gameState.consecutiveCorrect}/5`);
+      updateStreakDisplay(gameState.consecutiveCorrect);
+      
+      // Unlock next level if streak reaches 5
+      if (gameState.consecutiveCorrect >= 5) {
+        const nextLevel = gameState.currentLevel + 1;
+        if (!gameState.unlockedLevels.includes(nextLevel)) {
+          console.log(`Unlocking level ${nextLevel}`);
+          gameState.unlockedLevels.push(nextLevel);
+          showToast(`Congratulations! You've unlocked Planet ${nextLevel}!`);
+          saveProgress();
+        }
+        
+        // Note: We don't automatically go to next level - player must click Next Riddle button
+        showToast("Streak of 5! Click 'Next Riddle' to continue!");
+      }
+      
       handleLevelComplete();
     }
     
@@ -592,6 +1039,16 @@ export function handleNumberPick(number) {
   } else {
     console.log('Incorrect number picked.');
     console.log(`Number picked: ${number} (${typeof number}), expected: ${cell.correctValue} (${typeof cell.correctValue})`);
+    
+    // Reset consecutive correct counter on incorrect answer ONLY if a riddle is incomplete
+    // We don't want to reset streak when starting a new riddle
+    if (gameState.consecutiveCorrect > 0) {
+      gameState.consecutiveCorrect = 0;
+      updateStreakDisplay(0);
+      saveProgress();
+      showToast("Streak reset! You need 5 correct answers in a row to advance.");
+    }
+    
     // Wrong answer - keep number picker open and cell selected
     element.classList.add('shake');
     setTimeout(() => element.classList.remove('shake'), 500);
@@ -599,6 +1056,51 @@ export function handleNumberPick(number) {
     
     // Do NOT reset currentEmptyCell to keep the cell selected
     // Do NOT close the number picker to allow for another choice
+  }
+}
+
+// Update streak display
+function updateStreakDisplay(count) {
+  const streakNumber = document.querySelector('.streak-number');
+  if (streakNumber) {
+    streakNumber.textContent = `${count}/5`;
+    
+    // Add visual emphasis as the streak grows
+    if (count >= 5) {
+      streakNumber.style.color = '#ff5722'; // Bright orange color
+      streakNumber.style.fontWeight = 'bold';
+      streakNumber.style.fontSize = '1.2em';
+      streakNumber.classList.add('pulse-animation');
+    } else if (count >= 3) {
+      // Getting close to achievement
+      streakNumber.style.color = '#ff9800'; // Orange color
+      streakNumber.style.fontWeight = 'bold';
+      streakNumber.style.fontSize = '1.1em';
+      streakNumber.classList.remove('pulse-animation');
+    } else {
+      // Reset style
+      streakNumber.style.color = '';
+      streakNumber.style.fontWeight = '';
+      streakNumber.style.fontSize = '';
+      streakNumber.classList.remove('pulse-animation');
+    }
+  }
+  
+  // Add pulse animation class if it doesn't exist
+  if (!document.querySelector('.pulse-animation-style')) {
+    const style = document.createElement('style');
+    style.className = 'pulse-animation-style';
+    style.textContent = `
+      @keyframes pulse-streak {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+      .pulse-animation {
+        animation: pulse-streak 1s infinite;
+      }
+    `;
+    document.head.appendChild(style);
   }
 }
 
@@ -619,28 +1121,29 @@ function checkLevelComplete() {
 
 // Handle level complete
 function handleLevelComplete() {
-  console.log('--- handleLevelComplete START ---'); // LOG
+  console.log('--- handleLevelComplete START ---');
   // Calculate stars based on hints used and time
   const stars = calculateStars();
   
   // Save stars for this level
   const levelKey = `${gameState.currentLevel}-${gameState.currentSubLevel}`;
-  gameState.levelStars[levelKey] = Math.max(gameState.levelStars[levelKey] || 0, stars); // Don't overwrite with fewer stars
+  gameState.levelStars[levelKey] = Math.max(gameState.levelStars[levelKey] || 0, stars);
   
-  // Update unlocked levels
+  // Update unlocked levels - Only if player has achieved 5 consecutive correct answers
   const nextLevel = gameState.currentLevel + 1;
-  if (!gameState.unlockedLevels.includes(nextLevel) && gameState.currentSubLevel >= 3) { // Assuming 3 sublevels per level
+  if (gameState.consecutiveCorrect >= 5 && !gameState.unlockedLevels.includes(nextLevel)) {
     console.log(`Unlocking level ${nextLevel}`);
     gameState.unlockedLevels.push(nextLevel);
+    showToast(`Congratulations! You've unlocked Planet ${nextLevel}!`);
   }
   
   // Save progress
   saveProgress();
   
   // Show celebration animation (stars and confetti)
-  console.log('Calling showCelebration...'); // LOG
-  showCelebration(stars, gameState.playerName);  // Pass player name to celebration
-  console.log('Returned from showCelebration.'); // LOG
+  console.log('Calling showCelebration...');
+  showCelebration(stars, gameState.playerName);
+  console.log('Returned from showCelebration.');
   
   // Speak congratulations with player's name if available
   if (gameState.playerName) {
@@ -650,18 +1153,18 @@ function handleLevelComplete() {
   }
   
   // Enable the "Next Riddle" button immediately
-  console.log('Enabling Next Riddle button...'); // LOG
+  console.log('Enabling Next Riddle button...');
   const nextButton = document.getElementById('next-riddle-btn');
-  console.log('Found Next Riddle button element:', nextButton); // LOG
+  console.log('Found Next Riddle button element:', nextButton);
   if (nextButton) {
     nextButton.disabled = false;
-    console.log('Next Riddle button ENABLED.'); // LOG
+    console.log('Next Riddle button ENABLED.');
     // Optional: Add a visual cue like a class
-    nextButton.classList.add('enabled'); 
+    nextButton.classList.add('enabled');
   } else {
-    console.error('Could not find Next Riddle button to enable!'); // LOG
+    console.error('Could not find Next Riddle button to enable!');
   }
-  console.log('--- handleLevelComplete END ---'); // LOG
+  console.log('--- handleLevelComplete END ---');
 }
 
 // Calculate stars based on performance
@@ -712,9 +1215,6 @@ function handleHint() {
     }
   }
   
-  gameState.hintsLeft--;
-  updateHintDisplay(gameState.hintsLeft);
-  
   const { row, col, element } = gameState.currentEmptyCell;
   
   // Make sure we have a valid board cell at this position
@@ -723,65 +1223,72 @@ function handleHint() {
     return;
   }
   
-  // Get the correct value, with extensive error checking
-  let correctValue;
-  try {
-    const cell = gameState.board[row][col];
-    if (!cell) {
-      throw new Error('Cell is null or undefined');
-    }
-    
-    if (typeof cell !== 'object' || !('correctValue' in cell)) {
-      throw new Error(`Not an expected cell object: ${JSON.stringify(cell)}`);
-    }
-    
-    correctValue = cell.correctValue;
-    
-    if (correctValue === undefined || correctValue === null) {
-      throw new Error('correctValue is null or undefined');
-    }
-    
-    // Handle the case where correctValue is still an object somehow
-    if (typeof correctValue === 'object') {
-      console.error(`correctValue is an object: ${JSON.stringify(correctValue)}`);
-      correctValue = String(correctValue);
-    }
-  } catch (error) {
-    console.error(`Error getting correctValue:`, error);
-    correctValue = "?"; // Fallback to a question mark
+  // Get the correct value
+  const correctValue = String(gameState.board[row][col].correctValue);
+  console.log(`Correct value for cell [${row}, ${col}] is ${correctValue}`);
+  
+  // Get the current options for this cell
+  let options = gameState.squareOptions[row][col];
+  if (!options || options.length === 0) {
+    const levelData = getLevelData(gameState.currentLevel, gameState.currentSubLevel);
+    options = [...levelData.numbers];
+    gameState.squareOptions[row][col] = options;
   }
   
-  // Ensure correctValue is properly displayed
-  const displayValue = String(correctValue);
+  console.log(`Current options for cell [${row}, ${col}]:`, options);
   
-  console.log(`Showing hint for cell [${row}, ${col}]. Correct value: ${displayValue}`);
+  // Filter out the correct value
+  const wrongOptions = options.filter(opt => String(opt) !== correctValue);
+  
+  // If there are wrong options, remove one randomly
+  if (wrongOptions.length > 0) {
+    // Choose a random wrong option to remove
+    const randomIndex = Math.floor(Math.random() * wrongOptions.length);
+    const optionToRemove = wrongOptions[randomIndex];
+    
+    console.log(`Removing wrong option ${optionToRemove} from available options`);
+    
+    // Update the options for this cell
+    gameState.squareOptions[row][col] = options.filter(opt => opt !== optionToRemove);
+    
+    // If the number picker is open, update it
+    populateNumberPicker(gameState.squareOptions[row][col]);
+    
+    // Show a toast notification
+    showToast(`Hint: ${optionToRemove} is not the correct number!`);
+    
+    // Play hint sound
+    playSound('hint');
+    
+    // Deduct points and update hint count
+    gameState.hintsLeft--;
+    updateHintDisplay(gameState.hintsLeft);
+    gameState.score = Math.max(0, gameState.score - 10);
+    updateScoreDisplay(gameState.score);
+  } else {
+    // No wrong options left, just show a message
+    showToast("The correct number is the only option left!");
+  }
+}
 
-  // Store original state if needed (e.g., if it had temporary user input)
-  const originalText = element.textContent;
-  const originalClasses = element.className;
-
-  // Apply flash styling
-  element.textContent = displayValue; // Show the correct number
-  element.classList.add('hint-flash'); // Add class for animation
-
-  // Remove flash styling and text after 3 seconds
+// Show a toast notification
+function showToast(message) {
+  let toast = document.getElementById('toast');
+  
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  
+  toast.textContent = message;
+  toast.classList.add('show');
+  
+  // Hide the toast after 3 seconds
   setTimeout(() => {
-    if (element) { // Check if element still exists (might have been filled)
-      element.textContent = originalText; // Restore original text (likely empty)
-      element.className = originalClasses; // Restore original classes
-      // Ensure 'selected' class is still applied
-      if (gameState.currentEmptyCell && gameState.currentEmptyCell.element === element) {
-        element.classList.add('selected');
-      }
-    }
+    toast.classList.remove('show');
   }, 3000);
-  
-  // Deduct points
-  gameState.score = Math.max(0, gameState.score - 10);
-  updateScoreDisplay(gameState.score);
-  
-  // Play hint sound
-  playSound('hint');
 }
 
 // Update hint display
@@ -848,6 +1355,8 @@ function setupParentDashboard() {
         unlockedLevels: [1],
         levelStars: {},
         playerName: '',
+        consecutiveCorrect: 0,
+        squareOptions: [],
       };
       document.querySelector('.parent-dashboard').classList.remove('visible');
       initGame();
@@ -891,32 +1400,40 @@ window.resetGameProgress = resetProgress;
 // Function to navigate to the next riddle
 function goToNextRiddle() {
   console.log('goToNextRiddle called.');
-  let nextLevelId = gameState.currentLevel;
-  let nextSubLevelId = gameState.currentSubLevel + 1;
-
-  // Check if there are more sublevels in the current level
-  const currentLevelData = getLevelData(gameState.currentLevel, 1); // Need level info
-  const subLevelCount = levels.find(l => l.id === gameState.currentLevel)?.subLevels.length || 3; // Get sublevel count
-
-  if (nextSubLevelId > subLevelCount) {
-    // Move to the first sublevel of the next level
-    nextSubLevelId = 1;
-    nextLevelId++;
-    // Handle wrapping after the last level (e.g., go back to level 1 or stay on map)
-    const totalLevels = getTotalLevelCount(); // Need a function in levels.js for this
-    if (nextLevelId > totalLevels) {
-      console.log('All levels completed! Showing level select.');
-      showLevelSelect();
-      return; // Stop here
-    }
-    // Check if the next level is unlocked
-    if (!gameState.unlockedLevels.includes(nextLevelId)) {
-       console.log(`Next level ${nextLevelId} is locked. Showing level select.`);
-       showLevelSelect(); // Go to map if next level isn't unlocked
-       return;
-    }
-  }
   
-  console.log(`Starting next riddle: Level ${nextLevelId}, SubLevel ${nextSubLevelId}`);
-  startLevel(nextLevelId, nextSubLevelId);
+  // If we have 5 consecutive correct answers, proceed to next sublevel/level
+  if (gameState.consecutiveCorrect >= 5) {
+    let nextLevelId = gameState.currentLevel;
+    let nextSubLevelId = gameState.currentSubLevel + 1;
+
+    // Check if there are more sublevels in the current level
+    const currentLevelData = getLevelData(gameState.currentLevel, 1);
+    const subLevelCount = levels.find(l => l.id === gameState.currentLevel)?.subLevels.length || 3;
+
+    if (nextSubLevelId > subLevelCount) {
+      // Move to the first sublevel of the next level
+      nextSubLevelId = 1;
+      nextLevelId++;
+      // Handle wrapping after the last level (e.g., go back to level 1 or stay on map)
+      const totalLevels = getTotalLevelCount();
+      if (nextLevelId > totalLevels) {
+        console.log('All levels completed! Showing level select.');
+        showLevelSelect();
+        return; // Stop here
+      }
+      // Check if the next level is unlocked
+      if (!gameState.unlockedLevels.includes(nextLevelId)) {
+         console.log(`Next level ${nextLevelId} is locked. Showing level select.`);
+         showLevelSelect(); // Go to map if next level isn't unlocked
+         return;
+      }
+    }
+    
+    console.log(`Starting next riddle: Level ${nextLevelId}, SubLevel ${nextSubLevelId}`);
+    startLevel(nextLevelId, nextSubLevelId);
+  } else {
+    // Generate a new riddle at the same level
+    console.log('Generating a new riddle at the same level');
+    startLevel(gameState.currentLevel, gameState.currentSubLevel);
+  }
 }

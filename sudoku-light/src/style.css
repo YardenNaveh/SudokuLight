@@ -62,7 +62,7 @@ h1 {
 /* Board styling */
 .board {
   display: grid;
-  gap: 4px;
+  gap: 1px;
   margin: 20px 0;
   background-color: #ddd;
   padding: 8px;
@@ -105,13 +105,15 @@ h1 {
   align-items: center;
   justify-content: center;
   background-color: white;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 24px;
   font-weight: bold;
   width: 50px;
   height: 50px;
   cursor: default;
   transition: all 0.2s ease;
+  position: relative;
+  border: 1px solid #e0e0e0;
 }
 
 .cell.empty {
@@ -160,21 +162,25 @@ h1 {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.score, .hint-count {
+.score, .hint-count, .streak-count {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.score-label, .hint-label {
+.score-label, .hint-label, .streak-label {
   font-size: 14px;
   color: #666;
 }
 
-.score-number, .hint-number {
+.score-number, .hint-number, .streak-number {
   font-size: 24px;
   font-weight: bold;
   color: #333;
+}
+
+.streak-number {
+  color: #4caf50; /* Green color for streak */
 }
 
 /* Controls */
@@ -497,8 +503,12 @@ h1 {
     background-color: #3a1d78; /* Darker purple for dark mode */
   }
   
-  .score-number, .hint-number, .score-label, .hint-label {
+  .score-number, .hint-number, .streak-number, .score-label, .hint-label, .streak-label {
     color: #f5f5f5;
+  }
+  
+  .streak-number {
+    color: #81c784; /* Lighter green for dark mode */
   }
   
   .cell {
@@ -610,6 +620,15 @@ h1 {
     70% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
     100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
   }
+  
+  /* Added dark mode threatening cell */
+  .cell.threatening {
+    background-color: #5a3636; /* Dark red for threatening cells */
+  }
+  
+  .cell.threatening.empty:hover {
+    background-color: #7a4646; /* Lighter dark red on hover */
+  }
 }
 
 /* Added style for selected cell */
@@ -628,4 +647,112 @@ h1 {
 
 .cell.filled-correctly {
   animation: correct-fill 0.4s ease-in-out;
+}
+
+/* Added style for threatening cells */
+.cell.threatening {
+  background-color: #ffdddd; /* Light red for threatening cells */
+}
+
+.cell.threatening.empty:hover {
+  background-color: #ffbbbb; /* Darker light red on hover */
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(97, 97, 97, 0.9);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  z-index: 2500;
+  max-width: 80%;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, -10px);
+}
+
+/* Dark mode toast */
+@media (prefers-color-scheme: dark) {
+  .toast {
+    background-color: rgba(33, 33, 33, 0.95);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Square border styling - only applied when squares are enabled */
+.board.squares-enabled .cell.left-border {
+  border-left: 3px solid #333;
+}
+
+.board.squares-enabled .cell.top-border {
+  border-top: 3px solid #333;
+}
+
+/* Add borders to the outside of each square */
+.board.squares-enabled.size-4 .cell:nth-child(4n) {
+  border-right: 3px solid #333;
+}
+
+.board.squares-enabled.size-4 .cell:nth-child(n+13):nth-child(-n+16) {
+  border-bottom: 3px solid #333;
+}
+
+.board.squares-enabled.size-6 .cell:nth-child(3n) {
+  border-right: 3px solid #333;
+}
+
+.board.squares-enabled.size-6 .cell:nth-child(6n) {
+  border-right: 3px solid #333;
+}
+
+.board.squares-enabled.size-6 .cell:nth-child(n+16):nth-child(-n+18),
+.board.squares-enabled.size-6 .cell:nth-child(n+34):nth-child(-n+36) {
+  border-bottom: 3px solid #333;
+}
+
+.board.squares-enabled.size-9 .cell:nth-child(3n) {
+  border-right: 3px solid #333;
+}
+
+.board.squares-enabled.size-9 .cell:nth-child(n+19):nth-child(-n+27),
+.board.squares-enabled.size-9 .cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom: 3px solid #333;
+}
+
+/* Dark mode border styling */
+@media (prefers-color-scheme: dark) {
+  .board.squares-enabled .cell.left-border {
+    border-left: 3px solid #666;
+  }
+  
+  .board.squares-enabled .cell.top-border {
+    border-top: 3px solid #666;
+  }
+  
+  .board.squares-enabled.size-4 .cell:nth-child(4n),
+  .board.squares-enabled.size-6 .cell:nth-child(3n),
+  .board.squares-enabled.size-6 .cell:nth-child(6n),
+  .board.squares-enabled.size-9 .cell:nth-child(3n) {
+    border-right: 3px solid #666;
+  }
+  
+  .board.squares-enabled.size-4 .cell:nth-child(n+13):nth-child(-n+16),
+  .board.squares-enabled.size-6 .cell:nth-child(n+16):nth-child(-n+18),
+  .board.squares-enabled.size-6 .cell:nth-child(n+34):nth-child(-n+36),
+  .board.squares-enabled.size-9 .cell:nth-child(n+19):nth-child(-n+27),
+  .board.squares-enabled.size-9 .cell:nth-child(n+46):nth-child(-n+54) {
+    border-bottom: 3px solid #666;
+  }
 }
