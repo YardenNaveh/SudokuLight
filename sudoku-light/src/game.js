@@ -356,162 +356,101 @@ function shuffle(array) {
 
 // Generate a valid Sudoku board
 function generateValidSudokuBoard(board, gridSize, numbers) {
-  const base = Math.sqrt(gridSize);
-  const isSquareGrid = Number.isInteger(base);
-  
-  // Check if squares are enabled for this level
-  const squaresEnabled = window.currentLevelData && window.currentLevelData.squares;
-  
-  // Special case for 6x6 grid with 3x3 square constraints, but only if squares are enabled
-  if (gridSize === 6 && squaresEnabled) {
-    generateValid6x6Board(board, numbers);
-    return;
+  // Determine block dimensions (handle non-square grids like 6x6)
+  let blockHeight, blockWidth;
+  if (gridSize === 6) {
+    blockHeight = 2;
+    blockWidth = 3;
+  } else if (Number.isInteger(Math.sqrt(gridSize))) {
+    blockHeight = blockWidth = Math.sqrt(gridSize);
+  } else {
+    // Default or error for unsupported non-square, non-6x6 grids with squares
+    // For now, default to simple pattern if squares are somehow enabled
+    blockHeight = 1; 
+    blockWidth = gridSize;
+    console.warn(`Unsupported grid size ${gridSize} for square constraints. Using row/col only.`);
   }
-  
-  // For perfect square grids (4x4, 9x9) with squares enabled, use the standard Sudoku pattern
-  if (isSquareGrid && squaresEnabled) {
-    // This formula ensures every row, column, and block has each number exactly once
-    const pattern = (r, c) => (base * (r % base) + Math.floor(r / base) + c) % gridSize;
-    
-    // Shuffle rows, columns, and symbols for randomization
-    const rows = shuffle([...Array(gridSize).keys()]);
-    const cols = shuffle([...Array(gridSize).keys()]);
-    const symbols = shuffle([...numbers]);
-    
+
+  // Check if squares (block constraints) are enabled for this level
+  const squaresEnabled = window.currentLevelData && window.currentLevelData.squares;
+
+  // If squares are enabled, generate a board respecting row, column, AND block constraints
+  if (squaresEnabled) {
+    // This formula ensures row, column, and block constraints are met
+    const pattern = (r, c) => (blockWidth * (r % blockHeight) + Math.floor(r / blockHeight) + c) % gridSize;
+    const symbols = shuffle([...numbers]); // Shuffle the number pool [1, 2, 3, 4, 5, 6]
+
+    // 1. Generate the base valid board using the pattern
     for (let r = 0; r < gridSize; r++) {
       for (let c = 0; c < gridSize; c++) {
-        board[r][c] = symbols[pattern(rows[r], cols[c])];
+        board[r][c] = symbols[pattern(r, c)];
       }
     }
-    return;
+    
+    // 2. Apply valid transformations for more randomness
+    // Shuffle rows within bands
+    for (let band = 0; band < gridSize / blockHeight; band++) {
+      const startRow = band * blockHeight;
+      const rowsInBand = [];
+      for (let i = 0; i < blockHeight; i++) {
+        rowsInBand.push(startRow + i);
+      }
+      const shuffledRowsInBand = shuffle([...rowsInBand]);
+      
+      // Apply the shuffle by swapping rows (need temporary storage)
+      const bandRowsData = rowsInBand.map(r => [...board[r]]); // Copy rows in the band
+      for(let i=0; i< blockHeight; i++){
+         board[rowsInBand[i]] = bandRowsData[shuffledRowsInBand.indexOf(rowsInBand[i])];
+      }
+    }
+
+    // Shuffle columns within stacks
+    for (let stack = 0; stack < gridSize / blockWidth; stack++) {
+      const startCol = stack * blockWidth;
+      const colsInStack = [];
+      for (let i = 0; i < blockWidth; i++) {
+        colsInStack.push(startCol + i);
+      }
+      const shuffledColsInStack = shuffle([...colsInStack]);
+
+      // Apply the shuffle by swapping columns (more complex)
+      const stackColsData = []; 
+      // Read the original data column by column for this stack
+      for(let c=0; c< blockWidth; c++){
+          const colIndex = colsInStack[c];
+          stackColsData.push(board.map(row => row[colIndex])); // Get column data
+      }
+      // Write the shuffled data back column by column
+      for(let c=0; c< blockWidth; c++){
+          const originalColIndex = colsInStack[c];
+          const targetColIndex = shuffledColsInStack[c];
+          const dataToWrite = stackColsData[colsInStack.indexOf(targetColIndex)];
+          for(let r=0; r<gridSize; r++){
+              board[r][originalColIndex] = dataToWrite[r];
+          }
+      }
+    }
+
+    console.log(`Generated ${gridSize}x${gridSize} board with block constraints and shuffling.`);
+    return; // Board generated with block constraints
   }
   
-  // For non-square grids or when squares aren't enabled, use a Latin Square pattern
-  console.warn(`Using Latin Square pattern for ${gridSize}×${gridSize} grid`);
+  // Fallback: For grids where squares aren't enabled, use a simple Latin Square pattern
+  // This only guarantees unique numbers in rows and columns.
+  console.warn(`Generating ${gridSize}×${gridSize} grid using simple Latin Square pattern (no block constraints).`);
+  const symbols = shuffle([...numbers]); // Shuffle numbers for some variety
   for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
-      board[r][c] = numbers[(r + c) % gridSize];
+      board[r][c] = symbols[(r + c) % gridSize];
     }
   }
 }
 
 // Special function to generate valid 6x6 Sudoku with 3x3 square constraints
-function generateValid6x6Board(board, numbers) {
-  console.log('Starting 6x6 board generation with numbers:', numbers);
-  
-  // Max attempts to generate a valid board using backtracking
-  const MAX_ATTEMPTS = 5;
-  let attempt = 0;
-  let success = false;
-
-  while (attempt < MAX_ATTEMPTS && !success) {
-    attempt++;
-    console.log(`Generation attempt ${attempt}/${MAX_ATTEMPTS}`);
-    
-    // Initialize board with nulls for each attempt
-    for (let i = 0; i < 6; i++) {
-      for (let j = 0; j < 6; j++) {
-        board[i][j] = null;
-      }
-    }
-
-    // Try to solve using backtracking
-    success = solve(0, 0);
-    
-    // If solved, validate the board immediately
-    if (success) {
-      try {
-        const isValid = validateBoard(board, 6, numbers);
-        if (!isValid) {
-          console.error(`Generated 6x6 board failed validation on attempt ${attempt}`);
-          success = false; // Mark as failed to retry
-        }
-      } catch (e) {
-        console.error(`Error validating generated 6x6 board: ${e.message}`);
-        success = false; // Mark as failed to retry
-      }
-    }
-  }
-
-  // Backtracking algorithm (nested function)
-  function solve(row, col) {
-    // Base case: Board is filled
-    if (row >= 6) {
-      return true;
-    }
-
-    // Calculate next cell
-    const nextRow = col === 5 ? row + 1 : row;
-    const nextCol = col === 5 ? 0 : col + 1;
-
-    // If cell is already filled (shouldn't happen with current init, but good practice)
-    if (board[row][col] !== null) {
-      return solve(nextRow, nextCol);
-    }
-
-    // Try numbers in shuffled order
-    const shuffledNumbers = shuffle([...numbers]);
-    for (const num of shuffledNumbers) {
-      if (isValid6x6Move(board, row, col, num)) {
-        board[row][col] = num;
-        if (solve(nextRow, nextCol)) {
-          return true; // Solution found
-        }
-        board[row][col] = null; // Backtrack
-      }
-    }
-
-    return false; // No valid number found for this cell
-  }
-
-  // If all attempts failed, use a fallback pattern
-  if (!success) {
-    console.warn(`All ${MAX_ATTEMPTS} attempts to generate a valid 6x6 board failed. Using fallback Latin Square pattern.`);
-    for (let r = 0; r < 6; r++) {
-      for (let c = 0; c < 6; c++) {
-        board[r][c] = numbers[(r + c) % 6];
-      }
-    }
-  }
-  
-  console.log('Completed 6x6 board generation');
-}
+// function generateValid6x6Board(board, numbers) { ... } // NO LONGER NEEDED
 
 // Check if a move is valid in a 6x6 grid with 3x3 square constraints
-function isValid6x6Move(board, row, col, num) {
-  // Check row
-  for (let j = 0; j < 6; j++) {
-    // Check only filled cells, ignore the current cell if it's being checked
-    if (j !== col && board[row][j] === num) {
-      return false;
-    }
-  }
-  
-  // Check column
-  for (let i = 0; i < 6; i++) {
-    // Check only filled cells, ignore the current cell if it's being checked
-    if (i !== row && board[i][col] === num) {
-      return false;
-    }
-  }
-  
-  // Check 3x3 square
-  const squareRowStart = Math.floor(row / 3) * 3;
-  const squareColStart = Math.floor(col / 3) * 3;
-  
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) {
-      const checkRow = squareRowStart + i;
-      const checkCol = squareColStart + j;
-      // Check only filled cells within the square, ignore the current cell
-      if ((checkRow !== row || checkCol !== col) && board[checkRow][checkCol] === num) {
-        return false;
-      }
-    }
-  }
-  
-  return true;
-}
+// function isValid6x6Move(board, row, col, num) { ... } // NO LONGER NEEDED
 
 // Validate that the board follows Sudoku rules
 function validateBoard(board, gridSize, numbers) {
@@ -583,44 +522,34 @@ function validateBoard(board, gridSize, numbers) {
         }
       }
     }
-    // Special case for 6x6 grid - check 3x3 squares (2 columns, 2 rows of squares)
+    // Special case for 6x6 grid - check 2x3 blocks
     else if (gridSize === 6) {
-      try {
-        const blockSize = 3; // 3x3 blocks in a 6x6 grid
-        
-        // Check each 3x3 block
-        for (let br = 0; br < 2; br++) { // 2 rows of blocks
-          for (let bc = 0; bc < 2; bc++) { // 2 columns of blocks
-            try {
-              const blockNumbers = new Set();
-              let count = 0;
-              for (let r = 0; r < blockSize; r++) {
-                for (let c = 0; c < blockSize; c++) {
-                  const cellValue = board[br * blockSize + r][bc * blockSize + c];
-                  if (cellValue === null || cellValue === undefined) {
-                    console.error(`Cell at block [${br},${bc}], position [${r},${c}] is null or undefined during validation`);
-                    // Allow validation to continue if cell is null, as it might be an empty cell to be filled
-                    continue;
-                  }
-                  blockNumbers.add(cellValue);
-                  count++;
-                }
-              }
+      const blockHeight = 2;
+      const blockWidth = 3;
+      // Iterate through the blocks: 3 rows of blocks, 2 columns of blocks
+      for (let blockRow = 0; blockRow < 3; blockRow++) { // Total rows (6) / Block height (2) = 3
+        for (let blockCol = 0; blockCol < 2; blockCol++) { // Total cols (6) / Block width (3) = 2
+          const blockNumbers = new Set();
+          for (let r = 0; r < blockHeight; r++) {
+            for (let c = 0; c < blockWidth; c++) {
+              const cellRow = blockRow * blockHeight + r;
+              const cellCol = blockCol * blockWidth + c;
+              const cellValue = board[cellRow][cellCol];
               
-              // Check if the number of unique values matches the number of filled cells in the block
-              if (blockNumbers.size !== count) {
-                console.error(`Block at [${br},${bc}] has duplicate numbers among filled cells.`);
+              // When validating a GENERATED board, null/undefined is an error
+              if (cellValue === null || cellValue === undefined) {
+                console.error(`Validation Error: Generated board has empty cell at [${cellRow},${cellCol}] in block [${blockRow}, ${blockCol}]`);
                 return false;
               }
-            } catch (e) {
-              console.error(`Error checking block [${br},${bc}]: ${e.message}`);
-              return false;
+              blockNumbers.add(cellValue);
             }
           }
+          // A full 2x3 block in a solved 6x6 puzzle must contain exactly gridSize (6) unique numbers
+          if (blockNumbers.size !== gridSize) {
+             console.error(`Validation Error: Block at [${blockRow},${blockCol}] (2x3) has ${blockNumbers.size} unique numbers, expected ${gridSize}. Numbers: ${[...blockNumbers].join(',')}`);
+             return false;
+          }
         }
-      } catch (e) {
-        console.error(`Error in 6x6 block validation: ${e.message}`);
-        return false;
       }
     }
     

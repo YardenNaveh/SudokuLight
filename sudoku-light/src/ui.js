@@ -4,39 +4,49 @@ const audioCache = {};
 // Renders the game board
 export function renderBoard(boardData, onCellTap) {
   const boardElement = document.createElement('div');
-  boardElement.className = `board size-${boardData.length}`;
-  
-  // Get current level data to check if squares are enabled
-  const levelData = window.currentLevelData; // This will be set in game.js before rendering
-  const squaresEnabled = levelData && levelData.squares;
-  
-  // Determine square size based on grid size
   const gridSize = boardData.length;
-  const squareSize = Number.isInteger(Math.sqrt(gridSize)) ? Math.sqrt(gridSize) : 
-                    (gridSize === 6 ? 3 : // Special case for 6x6 grid (3x2 squares)
-                    gridSize === 8 ? 4 : 2); // Default to 2 for other sizes
+  // KEEP original class name pattern for CSS grid compatibility
+  boardElement.className = `board size-${gridSize}`; 
   
-  // Add a class to the board if squares are enabled
+  // Determine block dimensions
+  let blockHeight, blockWidth;
+  const squaresEnabled = window.currentLevelData && window.currentLevelData.squares;
+  
   if (squaresEnabled) {
-    boardElement.classList.add('squares-enabled');
+      // Add class to board if squares are enabled (used by CSS)
+      boardElement.classList.add('squares-enabled'); 
+      
+      if (gridSize === 6) {
+          blockHeight = 2;
+          blockWidth = 3;
+      } else if (Number.isInteger(Math.sqrt(gridSize))) {
+          blockHeight = blockWidth = Math.sqrt(gridSize);
+      } else {
+          // Fallback for unsupported grids where squares might be enabled
+          blockHeight = gridSize; // Treat as one large block
+          blockWidth = gridSize;
+      }
+  } else {
+      // Default if squares are not enabled
+      blockHeight = gridSize;
+      blockWidth = gridSize;
   }
-  
-  for (let i = 0; i < boardData.length; i++) {
-    for (let j = 0; j < boardData[i].length; j++) {
+
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
+      cell.dataset.row = i;
+      cell.dataset.col = j;
       
-      // Add square region classes only if squares are enabled
-      if (squaresEnabled) {
-        const squareRow = Math.floor(i / squareSize);
-        const squareCol = Math.floor(j / squareSize);
-        cell.classList.add(`square-${squareRow}-${squareCol}`);
-        
-        // Add border classes based on position in square
-        if (j % squareSize === 0 && j > 0) {
+      // Add border classes if squares are enabled and we have multiple blocks
+      if (squaresEnabled && blockHeight < gridSize) { 
+        // Add thicker border to the left of cells starting a new block column
+        if (j % blockWidth === 0 && j > 0) {
           cell.classList.add('left-border');
         }
-        if (i % squareSize === 0 && i > 0) {
+        // Add thicker border to the top of cells starting a new block row
+        if (i % blockHeight === 0 && i > 0) {
           cell.classList.add('top-border');
         }
       }
