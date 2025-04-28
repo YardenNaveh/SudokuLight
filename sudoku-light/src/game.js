@@ -210,35 +210,52 @@ export function startLevel(levelId, subLevelId) {
 
 // Generate board based on level parameters
 function generateBoard(levelData) {
-  const { gridSize, hideCount, numbers, patterns } = levelData;
+  const { gridSize, hideCount, numbers, patterns, squares } = levelData;
   const board = [];
   
-  // Fill the board with numbers according to Sudoku rules
+  console.log('Generating board with parameters:', { gridSize, hideCount, numbers });
+  
+  // Initialize the board with all empty cells
   for (let i = 0; i < gridSize; i++) {
     const row = [];
     for (let j = 0; j < gridSize; j++) {
-      // For simplicity and for very young children, we'll use a deterministic pattern
-      // In a real Sudoku, we would use a more complex algorithm to ensure uniqueness
-      const value = numbers[(i + j) % numbers.length];
-      row.push(value);
+      row.push(null);
     }
     board.push(row);
   }
   
+  // Generate a valid Sudoku board where each row and column contains each number exactly once
+  generateValidSudokuBoard(board, gridSize, numbers);
+  
+  // Verify board validity
+  const isValid = validateBoard(board, gridSize, numbers);
+  console.log('Board validity check:', isValid);
+  
   // Hide some cells
   let hiddenCells = 0;
-  while (hiddenCells < hideCount) {
+  let attempts = 0;
+  const maxAttempts = gridSize * gridSize * 2; // Avoid infinite loops
+  
+  while (hiddenCells < hideCount && attempts < maxAttempts) {
     const i = Math.floor(Math.random() * gridSize);
     const j = Math.floor(Math.random() * gridSize);
     
-    if (board[i][j] !== null) {
+    if (board[i][j] !== null && typeof board[i][j] !== 'object') {
       // Store the original value in a separate property for checking correctness
       const originalValue = board[i][j];
       
       // Ensure originalValue is a primitive (string or number), not an object
-      const correctValue = typeof originalValue === 'object' ? 
-        (originalValue.toString ? originalValue.toString() : JSON.stringify(originalValue)) : 
-        originalValue;
+      let correctValue;
+      if (originalValue === null || originalValue === undefined) {
+        console.error(`Invalid value at position [${i}, ${j}]`);
+        correctValue = 1; // Default to 1 if invalid
+      } else if (typeof originalValue === 'object') {
+        // Convert object to string
+        correctValue = String(originalValue);
+        console.warn(`Object found at [${i}, ${j}], converting to string: ${correctValue}`);
+      } else {
+        correctValue = originalValue;
+      }
       
       console.log(`Setting cell [${i}, ${j}] correctValue to ${correctValue} (${typeof correctValue})`);
       
@@ -248,9 +265,100 @@ function generateBoard(levelData) {
       };
       hiddenCells++;
     }
+    attempts++;
+  }
+  
+  // Final verification to catch any issues
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
+      const cell = board[i][j];
+      if (cell && typeof cell === 'object') {
+        if (cell.correctValue === undefined || cell.correctValue === null) {
+          console.error(`Missing correctValue at [${i}, ${j}]`);
+          cell.correctValue = 1; // Set a default value to prevent errors
+        } else if (typeof cell.correctValue === 'object') {
+          console.error(`Object correctValue at [${i}, ${j}]: ${JSON.stringify(cell.correctValue)}`);
+          cell.correctValue = String(cell.correctValue); // Convert to string
+        }
+      }
+    }
   }
   
   return board;
+}
+
+// Generate a valid Sudoku board
+function generateValidSudokuBoard(board, gridSize, numbers) {
+  // Fill the board with a valid pattern ensuring each row and column has all numbers
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
+      // Use a Latin Square pattern where each row and column contains each number exactly once
+      // This is a simple algorithm that works for any grid size
+      const index = (i + j) % gridSize;
+      board[i][j] = numbers[index];
+    }
+  }
+  
+  // Optional: Shuffle the board a bit to make it more random
+  shuffleBoard(board, gridSize);
+}
+
+// Shuffle the board to make it more random while preserving Sudoku constraints
+function shuffleBoard(board, gridSize) {
+  // Swap some rows within the same block
+  for (let i = 0; i < 3; i++) {
+    const row1 = Math.floor(Math.random() * gridSize);
+    const row2 = Math.floor(Math.random() * gridSize);
+    
+    // Only swap if they're in the same block (for standard Sudoku rules)
+    if (row1 !== row2 && Math.floor(row1 / Math.sqrt(gridSize)) === Math.floor(row2 / Math.sqrt(gridSize))) {
+      // Swap rows
+      [board[row1], board[row2]] = [board[row2], board[row1]];
+    }
+  }
+  
+  // Swap some columns within the same block
+  for (let i = 0; i < 3; i++) {
+    const col1 = Math.floor(Math.random() * gridSize);
+    const col2 = Math.floor(Math.random() * gridSize);
+    
+    // Only swap if they're in the same block (for standard Sudoku rules)
+    if (col1 !== col2 && Math.floor(col1 / Math.sqrt(gridSize)) === Math.floor(col2 / Math.sqrt(gridSize))) {
+      // Swap columns
+      for (let row = 0; row < gridSize; row++) {
+        [board[row][col1], board[row][col2]] = [board[row][col2], board[row][col1]];
+      }
+    }
+  }
+}
+
+// Validate that the board follows Sudoku rules
+function validateBoard(board, gridSize, numbers) {
+  // Check each row
+  for (let i = 0; i < gridSize; i++) {
+    const rowNumbers = new Set();
+    for (let j = 0; j < gridSize; j++) {
+      rowNumbers.add(board[i][j]);
+    }
+    if (rowNumbers.size !== gridSize) {
+      console.error(`Row ${i} has duplicate numbers`);
+      return false;
+    }
+  }
+  
+  // Check each column
+  for (let j = 0; j < gridSize; j++) {
+    const colNumbers = new Set();
+    for (let i = 0; i < gridSize; i++) {
+      colNumbers.add(board[i][j]);
+    }
+    if (colNumbers.size !== gridSize) {
+      console.error(`Column ${j} has duplicate numbers`);
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 // Render game screen
@@ -602,18 +710,36 @@ function handleHint() {
     return;
   }
   
-  const correctValue = gameState.board[row][col].correctValue;
-  
-  // Make sure correctValue is a primitive value (number or string), not an object
-  if (correctValue === null || correctValue === undefined) {
-    console.error(`No correct value found for cell [${row}, ${col}]`);
-    return;
+  // Get the correct value, with extensive error checking
+  let correctValue;
+  try {
+    const cell = gameState.board[row][col];
+    if (!cell) {
+      throw new Error('Cell is null or undefined');
+    }
+    
+    if (typeof cell !== 'object' || !('correctValue' in cell)) {
+      throw new Error(`Not an expected cell object: ${JSON.stringify(cell)}`);
+    }
+    
+    correctValue = cell.correctValue;
+    
+    if (correctValue === undefined || correctValue === null) {
+      throw new Error('correctValue is null or undefined');
+    }
+    
+    // Handle the case where correctValue is still an object somehow
+    if (typeof correctValue === 'object') {
+      console.error(`correctValue is an object: ${JSON.stringify(correctValue)}`);
+      correctValue = String(correctValue);
+    }
+  } catch (error) {
+    console.error(`Error getting correctValue:`, error);
+    correctValue = "?"; // Fallback to a question mark
   }
   
-  // Ensure correctValue is properly formatted to display
-  const displayValue = typeof correctValue === 'object' ? 
-    (correctValue.toString ? correctValue.toString() : JSON.stringify(correctValue)) : 
-    correctValue;
+  // Ensure correctValue is properly displayed
+  const displayValue = String(correctValue);
   
   console.log(`Showing hint for cell [${row}, ${col}]. Correct value: ${displayValue}`);
 
