@@ -827,21 +827,26 @@ function highlightThreateningCells(rowIndex, colIndex) {
       }
     }
   } 
-  // Special case for 6x6 grid - use 3x2 regions (3 rows, 2 columns of 3x3 squares)
+  // Special case for 6x6 grid - use 2x3 regions
   else if (gridSize === 6) {
-    // Determine which 3x3 square the cell is in
-    const blockRowStart = Math.floor(rowIndex / 3) * 3; // 3x3 square rows
-    const blockColStart = Math.floor(colIndex / 3) * 3; // 3x3 square columns
+    const blockHeight = 2;
+    const blockWidth = 3;
+    // Determine which 2x3 block the cell is in
+    const blockRowStart = Math.floor(rowIndex / blockHeight) * blockHeight; 
+    const blockColStart = Math.floor(colIndex / blockWidth) * blockWidth; 
     
-    // Highlight cells in the same 3x3 block
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
+    // Highlight cells in the same 2x3 block
+    for (let i = 0; i < blockHeight; i++) { // Iterate 0 to 1 (height 2)
+      for (let j = 0; j < blockWidth; j++) { // Iterate 0 to 2 (width 3)
         const r = blockRowStart + i;
         const c = blockColStart + j;
-        // Make sure we don't go out of bounds
-        if (r < gridSize && c < gridSize && (r !== rowIndex || c !== colIndex)) {
+        // Don't highlight the selected cell itself
+        if (r !== rowIndex || c !== colIndex) {
           const cellIndex = r * gridSize + c;
-          cells[cellIndex].classList.add('threatening');
+          // Check if cell exists before adding class
+          if(cells[cellIndex]) {
+              cells[cellIndex].classList.add('threatening');
+          }
         }
       }
     }
