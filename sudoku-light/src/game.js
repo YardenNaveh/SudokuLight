@@ -720,6 +720,33 @@ function renderGameScreen() {
   app.appendChild(container);
   app.appendChild(numberPicker);
   
+  // === NEW: Auto-focus on the first empty cell ===
+  let firstEmptyRow = -1, firstEmptyCol = -1;
+  for (let i = 0; i < gameState.board.length; i++) {
+    for (let j = 0; j < gameState.board[i].length; j++) {
+      if (gameState.board[i][j] && gameState.board[i][j].value === null) {
+        firstEmptyRow = i;
+        firstEmptyCol = j;
+        break; // Found the first empty cell
+      }
+    }
+    if (firstEmptyRow !== -1) break;
+  }
+
+  if (firstEmptyRow !== -1) {
+    // Need to slightly delay the tap to ensure the element is fully rendered
+    setTimeout(() => {
+      const firstEmptyCellElement = document.querySelector(`.cell[data-row="${firstEmptyRow}"][data-col="${firstEmptyCol}"]`);
+      if (firstEmptyCellElement) {
+        console.log(`Auto-focusing first empty cell: [${firstEmptyRow}, ${firstEmptyCol}]`);
+        handleCellTap(firstEmptyCellElement, firstEmptyRow, firstEmptyCol);
+      } else {
+          console.error(`Could not find DOM element for first empty cell [${firstEmptyRow}, ${firstEmptyCol}]`)
+      }
+    }, 100); // 100ms delay should be sufficient
+  }
+  // === END NEW ===
+
   // Celebrations container
   const celebrations = document.createElement('div');
   celebrations.className = 'celebrations';
@@ -903,45 +930,89 @@ export function handleNumberPick(number) {
     // Update board state
     gameState.board[row][col].value = number;
     
-    // Close the number picker when correct
-    const numberPicker = document.querySelector('.number-picker');
-    if (numberPicker) { // Check if picker exists
-      numberPicker.classList.remove('open');
-    } else {
-      console.error('Number picker element not found when trying to close!');
-    }
-    
-    // Update cell display
+    // Update cell display (use original number)
     element.textContent = number;
     element.classList.remove('empty');
     element.classList.add('filled');
-    element.classList.add('filled-correctly'); // Add animation class
+    element.classList.add('filled-correctly');
     if (element) {
-      element.classList.remove('selected');
-      element.classList.remove('threatening'); // Remove threatening highlight
+        element.classList.remove('selected');
+        element.classList.remove('threatening');
     }
-    
-    // Remove threatening highlights from all cells
     document.querySelectorAll('.cell.threatening').forEach(cell => {
-      cell.classList.remove('threatening');
+        cell.classList.remove('threatening');
     });
-    
-    // Remove animation class after it finishes
     setTimeout(() => element.classList.remove('filled-correctly'), 400);
-    
+
     // Add score and play sound
     gameState.score += 1;
     updateScoreDisplay(gameState.score);
-    console.log('Score updated in state and updateScoreDisplay called. New score:', gameState.score);
     saveProgress();
-    
     playSound('correct');
-    
-    // Use haptic feedback if available
     if (navigator.vibrate) {
       navigator.vibrate(100);
     }
+
+    // === NEW: Auto-advance logic ===
+    let nextEmptyRow = -1, nextEmptyCol = -1;
+    const gridSize = gameState.board.length;
+
+    // Start searching from the cell AFTER the one just filled
+    let searchRow = row;
+    let searchCol = col + 1; // Start checking next column
+    let searchComplete = false;
     
+    while (!searchComplete) {
+        if (searchCol >= gridSize) { // Move to next row
+            searchRow++;
+            searchCol = 0;
+        }
+        if (searchRow >= gridSize) { // Wrap around to start of board
+            searchRow = 0;
+            searchCol = 0;
+        }
+        if (searchRow === row && searchCol === col) { 
+            // Completed a full loop back to the start
+            searchComplete = true; 
+            break; // Stop searching
+        }
+        
+        // Check the current search cell
+        if (gameState.board[searchRow][searchCol] && gameState.board[searchRow][searchCol].value === null) {
+            nextEmptyRow = searchRow;
+            nextEmptyCol = searchCol;
+            searchComplete = true; // Found the next empty cell
+            break;
+        }
+        
+        // Move to the next column for the next iteration
+        searchCol++;
+    }
+
+    // If we found a next empty cell, select it
+    if (nextEmptyRow !== -1) {
+      const nextCellElement = document.querySelector(`.cell[data-row="${nextEmptyRow}"][data-col="${nextEmptyCol}"]`);
+      if (nextCellElement) {
+        console.log(`Auto-advancing to next empty cell: [${nextEmptyRow}, ${nextEmptyCol}]`);
+        // Close the current picker *before* tapping the next cell
+        const currentPicker = document.querySelector('.number-picker');
+        if (currentPicker) currentPicker.classList.remove('open');
+        // Tap the next cell
+        handleCellTap(nextCellElement, nextEmptyRow, nextEmptyCol);
+        return; // Exit handleNumberPick early, as handleCellTap takes over
+      } else {
+           console.error(`Could not find DOM element for next empty cell [${nextEmptyRow}, ${nextEmptyCol}]`)
+      }
+    }
+    // === END NEW ===
+
+    // If we reach here, it means either no next empty cell was found (level complete)
+    // or we couldn't find the DOM element for it. Proceed with normal completion check.
+
+    // Close the number picker (if it wasn't closed by auto-advance)
+    const numberPicker = document.querySelector('.number-picker');
+    if (numberPicker) numberPicker.classList.remove('open');
+
     // Check if level complete
     console.log('Checking if level complete...');
     if (checkLevelComplete()) {
@@ -966,10 +1037,11 @@ export function handleNumberPick(number) {
       
       handleLevelComplete();
     }
-    
-    // Reset current empty cell only for correct answers
+
+    // Reset current empty cell as we are not auto-advancing
     console.log('Resetting current empty cell.');
     gameState.currentEmptyCell = null;
+
   } else {
     console.log('Incorrect number picked.');
     console.log(`Number picked: ${number} (${typeof number}), expected: ${cell.correctValue} (${typeof cell.correctValue})`);
