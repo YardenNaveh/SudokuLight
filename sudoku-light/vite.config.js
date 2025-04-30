@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   // Base path for GitHub Pages deployment
   // Comment this out for local development
-  base: '/sudoku-light/',
+  base: '/SudokuLight/',
   
   // Build configuration
   build: {
