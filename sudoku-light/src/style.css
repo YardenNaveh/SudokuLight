@@ -476,14 +476,24 @@ h1 {
   }
   
   .board.size-9 .cell {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     font-size: 14px;
   }
   
   .planet-button {
-    width: 60px;
-    height: 60px;
+    width: 65px;
+    height: 65px;
+  }
+  
+  /* Reduce number picker option size and gap on small screens */
+  .number-picker-options {
+    gap: 10px; 
+  }
+  .number-option {
+    width: 45px; 
+    height: 45px;
+    font-size: 20px;
   }
 }
 
@@ -649,13 +659,16 @@ h1 {
   animation: correct-fill 0.4s ease-in-out;
 }
 
-/* Added style for threatening cells */
+/* Styling for threatening cells */
 .cell.threatening {
-  background-color: #ffdddd; /* Light red for threatening cells */
+  background-color: #ffcdd2; /* Light red background */
+  color: #333; /* Dark text color for contrast */
 }
 
+/* Hover effect for threatening cells */
 .cell.threatening.empty:hover {
-  background-color: #ffbbbb; /* Darker light red on hover */
+  background-color: #ef9a9a; /* Darker red on hover */
+  cursor: pointer;
 }
 
 /* Toast notification */

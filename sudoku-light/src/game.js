@@ -1030,9 +1030,6 @@ export function handleNumberPick(number) {
           showToast(`Congratulations! You've unlocked Planet ${nextLevel}!`);
           saveProgress();
         }
-        
-        // Note: We don't automatically go to next level - player must click Next Riddle button
-        showToast("Streak of 5! Click 'Next Riddle' to continue!");
       }
       
       handleLevelComplete();
@@ -1420,6 +1417,9 @@ function goToNextRiddle() {
       // Move to the first sublevel of the next level
       nextSubLevelId = 1;
       nextLevelId++;
+      console.log('Moving to next major level. Resetting streak.');
+      gameState.consecutiveCorrect = 0; // Reset streak when level increases
+      
       // Handle wrapping after the last level (e.g., go back to level 1 or stay on map)
       const totalLevels = getTotalLevelCount();
       if (nextLevelId > totalLevels) {
