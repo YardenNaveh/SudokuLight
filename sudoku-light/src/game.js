@@ -52,8 +52,22 @@ export function initGame() {
   
   // Use a simple button with a direct click handler
   document.getElementById('start-button').onclick = function() {
-    // Go to level select screen to avoid any issues
-    showLevelSelect();
+    // Check if we have a saved name in local storage
+    const savedState = localStorage.getItem('sudokuLightState');
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        if (parsedState.playerName) {
+          // If we have a saved name, go directly to level select
+          showLevelSelect();
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse saved state:', e);
+      }
+    }
+    // If no saved name, show name input screen
+    showNameInput();
   };
 }
 
@@ -751,13 +765,6 @@ function renderGameScreen() {
   const celebrations = document.createElement('div');
   celebrations.className = 'celebrations';
   app.appendChild(celebrations);
-  
-  // First-time voice guidance (if this is the first level)
-  if (gameState.currentLevel === 1 && gameState.currentSubLevel === 1) {
-    setTimeout(() => {
-      speakText("Find the missing number!");
-    }, 1000);
-  }
 }
 
 // Handle cell tap
