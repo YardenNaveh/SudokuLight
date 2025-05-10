@@ -1,10 +1,12 @@
-const CACHE_NAME = 'sudoku-buddies-cache-v1';
+const CACHE_NAME = 'sudoku-buddies-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/style.css',
-  '/bundle.js',
-  '/assets/favicon.svg',
+  '/src/main.js',
+  '/src/game.js',
+  '/src/ui.js',
+  '/src/levels.js',
+  '/src/style.css',
   '/manifest.json'
 ];
 
@@ -26,6 +28,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
+        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
@@ -35,30 +38,11 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return the response from the cached version
+        // Cache hit - return response
         if (response) {
           return response;
         }
-        
-        // Clone the request because it's a one-time use stream
-        const fetchRequest = event.request.clone();
-        
-        // Network request and cache new assets
-        return fetch(fetchRequest).then(response => {
-          // Don't cache if not a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          
-          // Clone the response because it's a one-time use stream
-          const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-          
-          return response;
-        });
+        return fetch(event.request);
       })
   );
 });
